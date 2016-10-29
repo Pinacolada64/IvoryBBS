@@ -1732,11 +1732,13 @@ brk        	; $cafd  00
 brk        	; $cafe  00
 brk        	; $caff  00
 
+; page boundary
+
 brk        	; $cb00  00
 brk        	; $cb01  00
 ; $F1CA is normal CHROUT vector
-dex        	; $cb02  ca
-sbc ($00),y	; $cb03  f1 00
+.word $f1ca	; $cb02  ca f1
+brk			; $cb04  00
 brk        	; $cb05  00
 brk        	; $cb06  00
 brk        	; $cb07  00
@@ -1759,6 +1761,7 @@ lda #$37   	; $cb1a  a9 37
 sta $01    	; $cb1c  85 01
 rts        	; $cb1e  60
 brk        	; $cb1f  00
+
 ldx #$00   	; $cb20  a2 00
 ldy #$36   	; $cb22  a0 36
 sty $01    	; $cb24  84 01
@@ -1771,14 +1774,14 @@ jsr $cb51  	; $cb30  20 51 cb
 lda $fd    	; $cb33  a5 fd
 cmp #$00   	; $cb35  c9 00
 beq $cb57  	; $cb37  f0 1e
-jsr chrout  	; $cb39  20 d2 ff
+jsr chrout  ; $cb39  20 d2 ff
 lda $cff8  	; $cb3c  ad f8 cf
 beq $cb4e  	; $cb3f  f0 0d
 ldx #$05   	; $cb41  a2 05
-jsr chkout  	; $cb43  20 c9 ff
+jsr chkout  ; $cb43  20 c9 ff
 lda $fd    	; $cb46  a5 fd
-jsr chrout  	; $cb48  20 d2 ff
-jsr clrchn  	; $cb4b  20 cc ff
+jsr chrout  ; $cb48  20 d2 ff
+jsr clrchn  ; $cb4b  20 cc ff
 jmp $cb22  	; $cb4e  4c 22 cb
 
 inc $fb    	; $cb51  e6 fb
@@ -1802,6 +1805,7 @@ jmp $af00  	; $cb6c  4c 00 af
 lda #$36   	; $cb6f  a9 36
 sta $01    	; $cb71  85 01
 jmp $b330  	; $cb73  4c 30 b3
+
 lda #$36   	; $cb76  a9 36
 sta $01    	; $cb78  85 01
 jmp $b300  	; $cb7a  4c 00 b3
@@ -1816,6 +1820,7 @@ jmp $a000  	; $cb88  4c 00 a0
 lda #$37   	; $cb8b  a9 37
 sta $01    	; $cb8d  85 01
 rts        	; $cb8f  60
+
 lda #$36   	; $cb90  a9 36
 sta $01    	; $cb92  85 01
 ldy $02    	; $cb94  a4 02
@@ -1844,14 +1849,17 @@ lda #$37   	; $cbc9  a9 37
 sta $01    	; $cbcb  85 01
 rts        	; $cbcd  60
 
+; rvrs on:
 lda #$12   	; $cbce  a9 12
-jsr chrout  	; $cbd0  20 d2 ff
-lda #$3e   	; $cbd3  a9 3e
-jsr chrout  	; $cbd5  20 d2 ff
-lda #$9d   	; $cbd8  a9 9d
-jsr chrout  	; $cbda  20 d2 ff
+jsr chrout  ; $cbd0  20 d2 ff
+lda #'>'   	; $cbd3  a9 3e
+jsr chrout  ; $cbd5  20 d2 ff
+; cursor left:
+lda #'{left}'   ; $cbd8  a9 9d
+jsr chrout  ; $cbda  20 d2 ff
+; rvrs off:
 lda #$92   	; $cbdd  a9 92
-jsr chrout  	; $cbdf  20 d2 ff
+jsr chrout  ; $cbdf  20 d2 ff
 rts        	; $cbe2  60
 
 jsr getin  	; $cbe3  20 e4 ff
