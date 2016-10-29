@@ -1,4 +1,5 @@
 {addr:$c000}
+; finding tables using indirect-x or indirect-y addressing:
 lda $c800,x	; $c0a0  bd 00 c8
 cmp $c048,y	; $c0a3  d9 48 c0
 lda $c048,y	; $c131  b9 48 c0
@@ -19,4 +20,5 @@ lda $c970,y	; $ce4c  b9 70 c9
 lda $c870,x	; $cee6  bd 70 c8
 sta $c870,x	; $cf84  9d 70 c8
 
+; regex to find absolute zero-page references
 [^#]\$[0123456789abcdef]{2} 
