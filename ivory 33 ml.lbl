@@ -1,0 +1,2364 @@
+{addr:$c000}
+{asm}
+; zero-page:
+facho	= $62 ; Floating Point Accumulator #1: Mantissa ($62-$65)
+syno	= $96 ; Cassette Block Synchronization Number
+curdev	= $ba ; Current Device Number Being Used
+
+; rs-232 stuff
+ridbe	= $029b ; RS-232: Index to End of Receive Buffer
+ridbs	= $029c ; RS-232: Index to Start of Receive Buffer
+rodbs	= $029d ; RS-232: Index to Start of Transmit Buffer
+rodbe	= $029e ; RS-232: Index to End of Transmit Buffer
+
+enabl	= $02a1 ; RS-232 Interrupts Enabled
+ci2pra	= $dd00 ; CIA #2 Data Port Register A
+ci2prb	= $dd01 ; CIA #2 Data Port Register B
+ci2cra	= $dd0e ; CIA #2 Control Register A
+
+; kernal routines:
+setmsg	= $ff90
+readst	= $ffb7
+setlfs	= $ffba
+setnam	= $ffbd
+chkin	= $ffc6
+chkout	= $ffc9
+clrchn	= $ffcc
+chrin	= $ffcf
+chrout	= $ffd2
+loadf	= $ffd5
+savef	= $ffd8
+getin	= $ffe4
+
+lda #$00   	; $c000  a9 00
+bit $03a9  	; $c002  2c a9 03
+bit $06a9  	; $c005  2c a9 06
+bit $09a9  	; $c008  2c a9 09
+bit $0ca9  	; $c00b  2c a9 0c
+bit $0fa9  	; $c00e  2c a9 0f
+nop        	; $c011  ea
+jmp $c01b  	; $c012  4c 1b c0
+jmp $c5a1  	; $c015  4c a1 c5
+jmp $cb5a  	; $c018  4c 5a cb
+sta facho   ; $c01b  85 62
+tsx        	; $c01d  ba
+stx $c81c  	; $c01e  8e 1c c8
+lda #$33   	; $c021  a9 33
+clc        	; $c023  18
+adc facho   ; $c024  65 62
+sta $c031  	; $c026  8d 31 c0
+lda #$c0   	; $c029  a9 c0
+adc #$00   	; $c02b  69 00
+sta $c032  	; $c02d  8d 32 c0
+jmp $c033  	; $c030  4c 33 c0
+jmp $c057  	; $c033  4c 57 c0
+jmp $c40e  	; $c036  4c 0e c4
+jmp $c3d6  	; $c039  4c d6 c3
+jmp $c4d4  	; $c03c  4c d4 c4
+jmp $c51d  	; $c03f  4c 1d c5
+jmp $c5b0  	; $c042  4c b0 c5
+jmp $c695  	; $c045  4c 95 c6
+
+; Punter protocol responses:
+.ascii "goo"; $c048  47 4f 4f
+.ascii "bad"; $c04b  42 41 44
+.ascii "ack"; $c04e  41 43 4b
+.ascii "s/b"; $c051  53 2f 42
+.ascii "syn"; $c054  53 59 4e
+
+;sre $4f    	; $c048  47 4f
+;sre $4142  	; $c04a  4f 42 41
+;nop $41    	; $c04d  44 41
+;sre ($4b,x)	; $c04f  43 4b
+;sre ($2f),y	; $c051  53 2f
+;kil        	; $c053  42
+;sre ($59),y	; $c054  53 59
+;lsr $058d  	; $c056  4e 8d 05
+
+sta $c805	; $c057  8d 05 c8
+lda #$00   	; $c05a  a9 00
+sta $c800  	; $c05c  8d 00 c8
+sta $c801  	; $c05f  8d 01 c8
+sta $c802  	; $c062  8d 02 c8
+lda #$00   	; $c065  a9 00
+sta $c806  	; $c067  8d 06 c8
+sta $c807  	; $c06a  8d 07 c8
+jsr $c681  	; $c06d  20 81 c6
+jsr $c0f8  	; $c070  20 f8 c0
+lda syno    ; $c073  a5 96
+bne $c0cf  	; $c075  d0 58
+lda $c801  	; $c077  ad 01 c8
+sta $c800  	; $c07a  8d 00 c8
+lda $c802  	; $c07d  ad 02 c8
+sta $c801  	; $c080  8d 01 c8
+lda $0200  	; $c083  ad 00 02
+sta $c802  	; $c086  8d 02 c8
+lda #$00   	; $c089  a9 00
+sta $c804  	; $c08b  8d 04 c8
+lda #$01   	; $c08e  a9 01
+sta $c803  	; $c090  8d 03 c8
+lda $c805  	; $c093  ad 05 c8
+bit $c803  	; $c096  2c 03 c8
+beq $c0b1  	; $c099  f0 16
+ldy $c804  	; $c09b  ac 04 c8
+ldx #$00   	; $c09e  a2 00
+lda $c800,x	; $c0a0  bd 00 c8
+cmp $c048,y	; $c0a3  d9 48 c0
+bne $c0b1  	; $c0a6  d0 09
+iny        	; $c0a8  c8
+inx        	; $c0a9  e8
+cpx #$03   	; $c0aa  e0 03
+bne $c0a0  	; $c0ac  d0 f2
+jmp $c0c4  	; $c0ae  4c c4 c0
+asl $c803  	; $c0b1  0e 03 c8
+lda $c804  	; $c0b4  ad 04 c8
+clc        	; $c0b7  18
+adc #$03   	; $c0b8  69 03
+sta $c804  	; $c0ba  8d 04 c8
+cmp #$0f   	; $c0bd  c9 0f
+bne $c093  	; $c0bf  d0 d2
+jmp $c065  	; $c0c1  4c 65 c0
+lda #$ff   	; $c0c4  a9 ff
+sta $c806  	; $c0c6  8d 06 c8
+sta $c807  	; $c0c9  8d 07 c8
+jmp $c06d  	; $c0cc  4c 6d c0
+inc $c806  	; $c0cf  ee 06 c8
+bne $c0d7  	; $c0d2  d0 03
+inc $c807  	; $c0d4  ee 07 c8
+lda $c807  	; $c0d7  ad 07 c8
+ora $c806  	; $c0da  0d 06 c8
+beq $c0f2  	; $c0dd  f0 13
+lda $c806  	; $c0df  ad 06 c8
+cmp #$07   	; $c0e2  c9 07
+lda $c807  	; $c0e4  ad 07 c8
+cmp #$14   	; $c0e7  c9 14
+bcc $c06d  	; $c0e9  90 82
+lda #$01   	; $c0eb  a9 01
+sta syno    ; $c0ed  85 96
+jmp $c564  	; $c0ef  4c 64 c5
+lda #$00   	; $c0f2  a9 00
+sta syno    ; $c0f4  85 96
+rts        	; $c0f6  60
+nop        	; $c0f7  ea
+tya        	; $c0f8  98
+pha        	; $c0f9  48
+lda ridbe  	; $c0fa  ad 9b 02
+cmp ridbs  	; $c0fd  cd 9c 02
+beq $c118  	; $c100  f0 16
+ldy ridbs  	; $c102  ac 9c 02
+lda ($f7),y	; $c105  b1 f7
+pha        	; $c107  48
+inc ridbs  	; $c108  ee 9c 02
+lda #$00   	; $c10b  a9 00
+sta syno    ; $c10d  85 96
+pla        	; $c10f  68
+sta $0200  	; $c110  8d 00 02
+pla        	; $c113  68
+tay        	; $c114  a8
+jmp $c123  	; $c115  4c 23 c1
+lda #$02   	; $c118  a9 02
+sta syno    	; $c11a  85 96
+lda #$00   	; $c11c  a9 00
+sta $0200  	; $c11e  8d 00 02
+pla        	; $c121  68
+tay        	; $c122  a8
+pha        	; $c123  48
+lda #$03   	; $c124  a9 03
+sta curdev  ; $c126  85 ba
+pla        	; $c128  68
+rts        	; $c129  60
+ldx #$05   	; $c12a  a2 05
+jsr chkout  	; $c12c  20 c9 ff
+ldx #$00   	; $c12f  a2 00
+lda $c048,y	; $c131  b9 48 c0
+jsr chrout  	; $c134  20 d2 ff
+iny        	; $c137  c8
+inx        	; $c138  e8
+cpx #$03   	; $c139  e0 03
+bne $c131  	; $c13b  d0 f4
+jmp clrchn  	; $c13d  4c cc ff
+sta $c808  	; $c140  8d 08 c8
+lda #$00   	; $c143  a9 00
+sta $c80b  	; $c145  8d 0b c8
+lda #$02   	; $c148  a9 02
+sta facho   ; $c14a  85 62
+ldy $c808  	; $c14c  ac 08 c8
+jsr $c12a  	; $c14f  20 2a c1
+lda #$04   	; $c152  a9 04
+jsr $c057  	; $c154  20 57 c0
+lda syno    	; $c157  a5 96
+beq $c162  	; $c159  f0 07
+dec facho   ; $c15b  c6 62
+bne $c152  	; $c15d  d0 f3
+jmp $c148  	; $c15f  4c 48 c1
+ldy #$09   	; $c162  a0 09
+jsr $c12a  	; $c164  20 2a c1
+lda $c80d  	; $c167  ad 0d c8
+beq $c171  	; $c16a  f0 05
+lda $c808  	; $c16c  ad 08 c8
+beq $c190  	; $c16f  f0 1f
+lda $c904  	; $c171  ad 04 c9
+sta $c809  	; $c174  8d 09 c8
+sta $c817  	; $c177  8d 17 c8
+jsr $c285  	; $c17a  20 85 c2
+lda syno    	; $c17d  a5 96
+cmp #$01   	; $c17f  c9 01
+beq $c18f  	; $c181  f0 0c
+cmp #$02   	; $c183  c9 02
+beq $c162  	; $c185  f0 db
+cmp #$04   	; $c187  c9 04
+beq $c18f  	; $c189  f0 04
+cmp #$08   	; $c18b  c9 08
+beq $c162  	; $c18d  f0 d3
+rts        	; $c18f  60
+lda #$10   	; $c190  a9 10
+jsr $c057  	; $c192  20 57 c0
+lda syno    	; $c195  a5 96
+bne $c162  	; $c197  d0 c9
+lda #$0a   	; $c199  a9 0a
+sta $c809  	; $c19b  8d 09 c8
+ldy #$0c   	; $c19e  a0 0c
+jsr $c12a  	; $c1a0  20 2a c1
+lda #$08   	; $c1a3  a9 08
+jsr $c057  	; $c1a5  20 57 c0
+lda syno    	; $c1a8  a5 96
+beq $c1b1  	; $c1aa  f0 05
+dec $c809  	; $c1ac  ce 09 c8
+bne $c19e  	; $c1af  d0 ed
+rts        	; $c1b1  60
+lda #$01   	; $c1b2  a9 01
+sta $c80b  	; $c1b4  8d 0b c8
+lda $c81e  	; $c1b7  ad 1e c8
+beq $c1c1  	; $c1ba  f0 05
+ldy #$00   	; $c1bc  a0 00
+jsr $c12a  	; $c1be  20 2a c1
+lda #$0b   	; $c1c1  a9 0b
+jsr $c057  	; $c1c3  20 57 c0
+lda syno    	; $c1c6  a5 96
+bne $c1b7  	; $c1c8  d0 ed
+lda #$00   	; $c1ca  a9 00
+sta $c81e  	; $c1cc  8d 1e c8
+lda $c804  	; $c1cf  ad 04 c8
+cmp #$00   	; $c1d2  c9 00
+bne $c20b  	; $c1d4  d0 35
+lda $c80d  	; $c1d6  ad 0d c8
+bne $c243  	; $c1d9  d0 68
+inc $c819  	; $c1db  ee 19 c8
+bne $c1e3  	; $c1de  d0 03
+inc $c81a  	; $c1e0  ee 1a c8
+jsr $c36a  	; $c1e3  20 6a c3
+ldy #$05   	; $c1e6  a0 05
+iny        	; $c1e8  c8
+lda (facho+2),y	; $c1e9  b1 64
+cmp #$ff   	; $c1eb  c9 ff
+bne $c205  	; $c1ed  d0 16
+lda #$01   	; $c1ef  a9 01
+sta $c80d  	; $c1f1  8d 0d c8
+lda $c816  	; $c1f4  ad 16 c8
+eor #$01   	; $c1f7  49 01
+sta $c816  	; $c1f9  8d 16 c8
+jsr $c36a  	; $c1fc  20 6a c3
+jsr $c34a  	; $c1ff  20 4a c3
+jmp $c208  	; $c202  4c 08 c2
+jsr $c305  	; $c205  20 05 c3
+lda #$ba   	; $c208  a9 ba
+bit $2ea9  	; $c20a  2c a9 2e
+jsr $c58c  	; $c20d  20 8c c5
+ldy #$06   	; $c210  a0 06
+jsr $c12a  	; $c212  20 2a c1
+lda #$08   	; $c215  a9 08
+jsr $c057  	; $c217  20 57 c0
+lda syno    	; $c21a  a5 96
+bne $c208  	; $c21c  d0 ea
+jsr $c36a  	; $c21e  20 6a c3
+ldy #$04   	; $c221  a0 04
+lda (facho+2),y	; $c223  b1 64
+sta $c809  	; $c225  8d 09 c8
+jsr $c377  	; $c228  20 77 c3
+ldx #$05   	; $c22b  a2 05
+jsr chkout  	; $c22d  20 c9 ff
+ldy #$00   	; $c230  a0 00
+lda (facho+2),y	; $c232  b1 64
+jsr chrout  	; $c234  20 d2 ff
+iny        	; $c237  c8
+cpy $c809  	; $c238  cc 09 c8
+bne $c232  	; $c23b  d0 f5
+jsr clrchn  	; $c23d  20 cc ff
+lda #$00   	; $c240  a9 00
+rts        	; $c242  60
+lda #$2a   	; $c243  a9 2a
+jsr $c58c  	; $c245  20 8c c5
+ldy #$06   	; $c248  a0 06
+jsr $c12a  	; $c24a  20 2a c1
+lda #$08   	; $c24d  a9 08
+jsr $c057  	; $c24f  20 57 c0
+lda syno    	; $c252  a5 96
+bne $c243  	; $c254  d0 ed
+lda #$0a   	; $c256  a9 0a
+sta $c809  	; $c258  8d 09 c8
+ldy #$0c   	; $c25b  a0 0c
+jsr $c12a  	; $c25d  20 2a c1
+lda #$10   	; $c260  a9 10
+jsr $c057  	; $c262  20 57 c0
+lda syno    	; $c265  a5 96
+beq $c26e  	; $c267  f0 05
+dec $c809  	; $c269  ce 09 c8
+bne $c25b  	; $c26c  d0 ed
+lda #$03   	; $c26e  a9 03
+sta $c809  	; $c270  8d 09 c8
+ldy #$09   	; $c273  a0 09
+jsr $c12a  	; $c275  20 2a c1
+lda #$00   	; $c278  a9 00
+jsr $c057  	; $c27a  20 57 c0
+dec $c809  	; $c27d  ce 09 c8
+bne $c273  	; $c280  d0 f1
+lda #$01   	; $c282  a9 01
+rts        	; $c284  60
+ldy #$00   	; $c285  a0 00
+lda #$00   	; $c287  a9 00
+sta $c806  	; $c289  8d 06 c8
+sta $c807  	; $c28c  8d 07 c8
+jsr $c681  	; $c28f  20 81 c6
+jsr $c0f8  	; $c292  20 f8 c0
+lda syno    	; $c295  a5 96
+bne $c2d5  	; $c297  d0 3c
+lda $0200  	; $c299  ad 00 02
+sta $c900,y	; $c29c  99 00 c9
+cpy #$03   	; $c29f  c0 03
+bcs $c2bf  	; $c2a1  b0 1c
+sta $c800,y	; $c2a3  99 00 c8
+cpy #$02   	; $c2a6  c0 02
+bne $c2bf  	; $c2a8  d0 15
+lda $c800  	; $c2aa  ad 00 c8
+cmp #$41   	; $c2ad  c9 41
+bne $c2bf  	; $c2af  d0 0e
+lda $c801  	; $c2b1  ad 01 c8
+cmp #$43   	; $c2b4  c9 43
+bne $c2bf  	; $c2b6  d0 07
+lda $c802  	; $c2b8  ad 02 c8
+cmp #$4b   	; $c2bb  c9 4b
+beq $c2ca  	; $c2bd  f0 0b
+iny        	; $c2bf  c8
+cpy $c809  	; $c2c0  cc 09 c8
+bne $c287  	; $c2c3  d0 c2
+lda #$01   	; $c2c5  a9 01
+sta syno    	; $c2c7  85 96
+rts        	; $c2c9  60
+lda #$ff   	; $c2ca  a9 ff
+sta $c806  	; $c2cc  8d 06 c8
+sta $c807  	; $c2cf  8d 07 c8
+jmp $c28f  	; $c2d2  4c 8f c2
+inc $c806  	; $c2d5  ee 06 c8
+bne $c2dd  	; $c2d8  d0 03
+inc $c807  	; $c2da  ee 07 c8
+lda $c806  	; $c2dd  ad 06 c8
+ora $c807  	; $c2e0  0d 07 c8
+beq $c300  	; $c2e3  f0 1b
+lda $c806  	; $c2e5  ad 06 c8
+cmp #$06   	; $c2e8  c9 06
+lda $c807  	; $c2ea  ad 07 c8
+cmp #$10   	; $c2ed  c9 10
+bne $c28f  	; $c2ef  d0 9e
+lda #$02   	; $c2f1  a9 02
+sta syno    	; $c2f3  85 96
+cpy #$00   	; $c2f5  c0 00
+beq $c2fd  	; $c2f7  f0 04
+lda #$04   	; $c2f9  a9 04
+sta syno    	; $c2fb  85 96
+jmp $c564  	; $c2fd  4c 64 c5
+lda #$08   	; $c300  a9 08
+sta syno    	; $c302  85 96
+rts        	; $c304  60
+lda $c816  	; $c305  ad 16 c8
+eor #$01   	; $c308  49 01
+sta $c816  	; $c30a  8d 16 c8
+jsr $c36a  	; $c30d  20 6a c3
+ldy #$05   	; $c310  a0 05
+lda $c819  	; $c312  ad 19 c8
+clc        	; $c315  18
+adc #$01   	; $c316  69 01
+sta (facho+2),y	; $c318  91 64
+iny        	; $c31a  c8
+lda $c81a  	; $c31b  ad 1a c8
+adc #$00   	; $c31e  69 00
+sta (facho+2),y	; $c320  91 64
+ldx #$02   	; $c322  a2 02
+jsr chkin  	; $c324  20 c6 ff
+ldy #$07   	; $c327  a0 07
+jsr chrin  	; $c329  20 cf ff
+sta (facho+2),y	; $c32c  91 64
+iny        	; $c32e  c8
+jsr readst  	; $c32f  20 b7 ff
+bne $c33e  	; $c332  d0 0a
+cpy $c818  	; $c334  cc 18 c8
+bne $c329  	; $c337  d0 f0
+tya        	; $c339  98
+pha        	; $c33a  48
+jmp $c34b  	; $c33b  4c 4b c3
+tya        	; $c33e  98
+pha        	; $c33f  48
+ldy #$05   	; $c340  a0 05
+iny        	; $c342  c8
+lda #$ff   	; $c343  a9 ff
+sta (facho+2),y	; $c345  91 64
+jmp $c34b  	; $c347  4c 4b c3
+pha        	; $c34a  48
+jsr clrchn  	; $c34b  20 cc ff
+jsr $c5a1  	; $c34e  20 a1 c5
+jsr $c57f  	; $c351  20 7f c5
+jsr $c5a1  	; $c354  20 a1 c5
+ldy #$04   	; $c357  a0 04
+lda (facho+2),y	; $c359  b1 64
+sta $c809  	; $c35b  8d 09 c8
+jsr $c377  	; $c35e  20 77 c3
+pla        	; $c361  68
+ldy #$04   	; $c362  a0 04
+sta (facho+2),y	; $c364  91 64
+jsr $c386  	; $c366  20 86 c3
+rts        	; $c369  60
+lda #$00   	; $c36a  a9 00
+sta facho+2    	; $c36c  85 64
+lda $c816  	; $c36e  ad 16 c8
+clc        	; $c371  18
+adc #$c9   	; $c372  69 c9
+sta facho+3    	; $c374  85 65
+rts        	; $c376  60
+lda #$00   	; $c377  a9 00
+sta facho+2    	; $c379  85 64
+lda $c816  	; $c37b  ad 16 c8
+eor #$01   	; $c37e  49 01
+clc        	; $c380  18
+adc #$c9   	; $c381  69 c9
+sta facho+3    	; $c383  85 65
+rts        	; $c385  60
+lda #$00   	; $c386  a9 00
+sta $c812  	; $c388  8d 12 c8
+sta $c813  	; $c38b  8d 13 c8
+sta $c814  	; $c38e  8d 14 c8
+sta $c815  	; $c391  8d 15 c8
+ldy #$04   	; $c394  a0 04
+lda $c812  	; $c396  ad 12 c8
+clc        	; $c399  18
+adc (facho+2),y	; $c39a  71 64
+sta $c812  	; $c39c  8d 12 c8
+bcc $c3a4  	; $c39f  90 03
+inc $c813  	; $c3a1  ee 13 c8
+lda $c814  	; $c3a4  ad 14 c8
+eor (facho+2),y	; $c3a7  51 64
+sta $c814  	; $c3a9  8d 14 c8
+lda $c815  	; $c3ac  ad 15 c8
+rol        	; $c3af  2a
+rol $c814  	; $c3b0  2e 14 c8
+rol $c815  	; $c3b3  2e 15 c8
+iny        	; $c3b6  c8
+cpy $c809  	; $c3b7  cc 09 c8
+bne $c396  	; $c3ba  d0 da
+ldy #$00   	; $c3bc  a0 00
+lda $c812  	; $c3be  ad 12 c8
+sta (facho+2),y	; $c3c1  91 64
+iny        	; $c3c3  c8
+lda $c813  	; $c3c4  ad 13 c8
+sta (facho+2),y	; $c3c7  91 64
+iny        	; $c3c9  c8
+lda $c814  	; $c3ca  ad 14 c8
+sta (facho+2),y	; $c3cd  91 64
+iny        	; $c3cf  c8
+lda $c815  	; $c3d0  ad 15 c8
+sta (facho+2),y	; $c3d3  91 64
+rts        	; $c3d5  60
+lda #$00   	; $c3d6  a9 00
+sta $c80d  	; $c3d8  8d 0d c8
+sta $c80c  	; $c3db  8d 0c c8
+sta $c81d  	; $c3de  8d 1d c8
+lda #$01   	; $c3e1  a9 01
+sta $c816  	; $c3e3  8d 16 c8
+lda #$ff   	; $c3e6  a9 ff
+sta $c819  	; $c3e8  8d 19 c8
+sta $c81a  	; $c3eb  8d 1a c8
+jsr $c377  	; $c3ee  20 77 c3
+ldy #$04   	; $c3f1  a0 04
+lda #$07   	; $c3f3  a9 07
+sta (facho+2),y	; $c3f5  91 64
+jsr $c36a  	; $c3f7  20 6a c3
+ldy #$05   	; $c3fa  a0 05
+lda #$00   	; $c3fc  a9 00
+sta (facho+2),y	; $c3fe  91 64
+iny        	; $c400  c8
+sta (facho+2),y	; $c401  91 64
+jsr $c1b2  	; $c403  20 b2 c1
+beq $c403  	; $c406  f0 fb
+lda #$00   	; $c408  a9 00
+sta $0200  	; $c40a  8d 00 02
+rts        	; $c40d  60
+lda #$01   	; $c40e  a9 01
+sta $c819  	; $c410  8d 19 c8
+lda #$00   	; $c413  a9 00
+sta $c81a  	; $c415  8d 1a c8
+sta $c80d  	; $c418  8d 0d c8
+sta $c816  	; $c41b  8d 16 c8
+sta $c905  	; $c41e  8d 05 c9
+sta $c906  	; $c421  8d 06 c9
+sta $c80c  	; $c424  8d 0c c8
+lda #$07   	; $c427  a9 07
+sta $c904  	; $c429  8d 04 c9
+lda #$00   	; $c42c  a9 00
+jsr $c140  	; $c42e  20 40 c1
+lda $c80d  	; $c431  ad 0d c8
+bne $c408  	; $c434  d0 d2
+jsr $c48a  	; $c436  20 8a c4
+bne $c477  	; $c439  d0 3c
+jsr clrchn  	; $c43b  20 cc ff
+lda $c809  	; $c43e  ad 09 c8
+cmp #$07   	; $c441  c9 07
+beq $c45b  	; $c443  f0 16
+ldx #$02   	; $c445  a2 02
+jsr chkout  	; $c447  20 c9 ff
+ldy #$07   	; $c44a  a0 07
+lda $c900,y	; $c44c  b9 00 c9
+jsr chrout  	; $c44f  20 d2 ff
+iny        	; $c452  c8
+cpy $c809  	; $c453  cc 09 c8
+bne $c44c  	; $c456  d0 f4
+jsr clrchn  	; $c458  20 cc ff
+lda $c906  	; $c45b  ad 06 c9
+cmp #$ff   	; $c45e  c9 ff
+bne $c46a  	; $c460  d0 08
+lda #$01   	; $c462  a9 01
+sta $c80d  	; $c464  8d 0d c8
+lda #$2a   	; $c467  a9 2a
+bit $baa9  	; $c469  2c a9 ba
+jsr chrout  	; $c46c  20 d2 ff
+jsr $c5a1  	; $c46f  20 a1 c5
+lda #$00   	; $c472  a9 00
+jmp $c42e  	; $c474  4c 2e c4
+jsr clrchn  	; $c477  20 cc ff
+lda #$2e   	; $c47a  a9 2e
+jsr chrout  	; $c47c  20 d2 ff
+lda $c817  	; $c47f  ad 17 c8
+sta $c904  	; $c482  8d 04 c9
+lda #$03   	; $c485  a9 03
+jmp $c42e  	; $c487  4c 2e c4
+lda $c900  	; $c48a  ad 00 c9
+sta $c80e  	; $c48d  8d 0e c8
+lda $c901  	; $c490  ad 01 c9
+sta $c80f  	; $c493  8d 0f c8
+lda $c902  	; $c496  ad 02 c9
+sta $c810  	; $c499  8d 10 c8
+lda $c903  	; $c49c  ad 03 c9
+sta $c811  	; $c49f  8d 11 c8
+jsr $c36a  	; $c4a2  20 6a c3
+lda $c817  	; $c4a5  ad 17 c8
+sta $c809  	; $c4a8  8d 09 c8
+jsr $c386  	; $c4ab  20 86 c3
+lda $c900  	; $c4ae  ad 00 c9
+cmp $c80e  	; $c4b1  cd 0e c8
+bne $c4d1  	; $c4b4  d0 1b
+lda $c901  	; $c4b6  ad 01 c9
+cmp $c80f  	; $c4b9  cd 0f c8
+bne $c4d1  	; $c4bc  d0 13
+lda $c902  	; $c4be  ad 02 c9
+cmp $c810  	; $c4c1  cd 10 c8
+bne $c4d1  	; $c4c4  d0 0b
+lda $c903  	; $c4c6  ad 03 c9
+cmp $c811  	; $c4c9  cd 11 c8
+bne $c4d1  	; $c4cc  d0 03
+lda #$00   	; $c4ce  a9 00
+rts        	; $c4d0  60
+lda #$01   	; $c4d1  a9 01
+rts        	; $c4d3  60
+lda #$00   	; $c4d4  a9 00
+sta $c819  	; $c4d6  8d 19 c8
+sta $c81a  	; $c4d9  8d 1a c8
+sta $c80d  	; $c4dc  8d 0d c8
+sta $c816  	; $c4df  8d 16 c8
+sta $c80c  	; $c4e2  8d 0c c8
+lda #$07   	; $c4e5  a9 07
+clc        	; $c4e7  18
+adc #$01   	; $c4e8  69 01
+sta $c904  	; $c4ea  8d 04 c9
+lda #$00   	; $c4ed  a9 00
+jsr $c140  	; $c4ef  20 40 c1
+lda $c80d  	; $c4f2  ad 0d c8
+bne $c517  	; $c4f5  d0 20
+jsr $c48a  	; $c4f7  20 8a c4
+bne $c50c  	; $c4fa  d0 10
+lda $c907  	; $c4fc  ad 07 c9
+sta $c81b  	; $c4ff  8d 1b c8
+lda #$01   	; $c502  a9 01
+sta $c80d  	; $c504  8d 0d c8
+lda #$00   	; $c507  a9 00
+jmp $c4ef  	; $c509  4c ef c4
+lda $c817  	; $c50c  ad 17 c8
+sta $c904  	; $c50f  8d 04 c9
+lda #$03   	; $c512  a9 03
+jmp $c4ef  	; $c514  4c ef c4
+lda #$00   	; $c517  a9 00
+sta $0200  	; $c519  8d 00 02
+rts        	; $c51c  60
+lda #$00   	; $c51d  a9 00
+sta $c80d  	; $c51f  8d 0d c8
+sta $c80c  	; $c522  8d 0c c8
+lda #$01   	; $c525  a9 01
+sta $c816  	; $c527  8d 16 c8
+sta $c81d  	; $c52a  8d 1d c8
+lda #$ff   	; $c52d  a9 ff
+sta $c819  	; $c52f  8d 19 c8
+sta $c81a  	; $c532  8d 1a c8
+jsr $c377  	; $c535  20 77 c3
+ldy #$04   	; $c538  a0 04
+lda #$07   	; $c53a  a9 07
+clc        	; $c53c  18
+adc #$01   	; $c53d  69 01
+sta (facho+2),y	; $c53f  91 64
+jsr $c36a  	; $c541  20 6a c3
+ldy #$05   	; $c544  a0 05
+lda #$ff   	; $c546  a9 ff
+sta (facho+2),y	; $c548  91 64
+iny        	; $c54a  c8
+sta (facho+2),y	; $c54b  91 64
+ldy #$07   	; $c54d  a0 07
+lda $c81b  	; $c54f  ad 1b c8
+sta (facho+2),y	; $c552  91 64
+lda #$01   	; $c554  a9 01
+sta $c81e  	; $c556  8d 1e c8
+jsr $c1b2  	; $c559  20 b2 c1
+beq $c559  	; $c55c  f0 fb
+lda #$00   	; $c55e  a9 00
+sta $0200  	; $c560  8d 00 02
+rts        	; $c563  60
+inc $c80c  	; $c564  ee 0c c8
+lda $c80c  	; $c567  ad 0c c8
+cmp #$03   	; $c56a  c9 03
+bcc $c57a  	; $c56c  90 0c
+lda #$00   	; $c56e  a9 00
+sta $c80c  	; $c570  8d 0c c8
+lda $c80b  	; $c573  ad 0b c8
+beq $c57f  	; $c576  f0 07
+bne $c58b  	; $c578  d0 11
+lda $c80b  	; $c57a  ad 0b c8
+beq $c58b  	; $c57d  f0 0c
+ldx #$00   	; $c57f  a2 00
+ldy #$00   	; $c581  a0 00
+iny        	; $c583  c8
+bne $c583  	; $c584  d0 fd
+inx        	; $c586  e8
+cpx #$78   	; $c587  e0 78
+bne $c581  	; $c589  d0 f6
+rts        	; $c58b  60
+pha        	; $c58c  48
+lda $c819  	; $c58d  ad 19 c8
+ora $c81a  	; $c590  0d 1a c8
+beq $c59f  	; $c593  f0 0a
+lda $c81d  	; $c595  ad 1d c8
+bne $c59f  	; $c598  d0 05
+pla        	; $c59a  68
+jsr chrout  	; $c59b  20 d2 ff
+pha        	; $c59e  48
+pla        	; $c59f  68
+rts        	; $c5a0  60
+jsr $ef7e  	; $c5a1  20 7e ef
+lda enabl  	; $c5a4  ad a1 02
+cmp #$80   	; $c5a7  c9 80
+beq $c5a1  	; $c5a9  f0 f6
+cmp #$92   	; $c5ab  c9 92
+beq $c5a1  	; $c5ad  f0 f2
+rts        	; $c5af  60
+jmp $cbb7  	; $c5b0  4c b7 cb
+jsr $c0f7  	; $c5b3  20 f7 c0
+lda syno    	; $c5b6  a5 96
+bne $c5ce  	; $c5b8  d0 14
+lda $0200  	; $c5ba  ad 00 02
+and #$7f   	; $c5bd  29 7f
+sta $0200  	; $c5bf  8d 00 02
+cmp #$08   	; $c5c2  c9 08
+beq $c5d1  	; $c5c4  f0 0b
+cmp #$0d   	; $c5c6  c9 0d
+beq $c5d1  	; $c5c8  f0 07
+cmp #$20   	; $c5ca  c9 20
+bpl $c5d1  	; $c5cc  10 03
+jmp $c61b  	; $c5ce  4c 1b c6
+cmp #$61   	; $c5d1  c9 61
+bcc $c5e2  	; $c5d3  90 0d
+cmp #$7b   	; $c5d5  c9 7b
+bcs $c5e2  	; $c5d7  b0 09
+sec        	; $c5d9  38
+sbc #$20   	; $c5da  e9 20
+sta $0200  	; $c5dc  8d 00 02
+jmp $c5f0  	; $c5df  4c f0 c5
+cmp #$41   	; $c5e2  c9 41
+bcc $c5f0  	; $c5e4  90 0a
+cmp #$5b   	; $c5e6  c9 5b
+bcs $c5f0  	; $c5e8  b0 06
+clc        	; $c5ea  18
+adc #$80   	; $c5eb  69 80
+sta $0200  	; $c5ed  8d 00 02
+cmp #$08   	; $c5f0  c9 08
+bne $c5f9  	; $c5f2  d0 05
+lda #$14   	; $c5f4  a9 14
+sta $0200  	; $c5f6  8d 00 02
+cmp #$22   	; $c5f9  c9 22
+bne $c607  	; $c5fb  d0 0a
+jsr chrout  	; $c5fd  20 d2 ff
+lda #$14   	; $c600  a9 14
+jsr chrout  	; $c602  20 d2 ff
+lda #$22   	; $c605  a9 22
+lda $0200  	; $c607  ad 00 02
+cmp #$0d   	; $c60a  c9 0d
+bne $c615  	; $c60c  d0 07
+lda #$20   	; $c60e  a9 20
+jsr chrout  	; $c610  20 d2 ff
+lda #$0d   	; $c613  a9 0d
+jsr chrout  	; $c615  20 d2 ff
+jsr $cbce  	; $c618  20 ce cb
+jmp $cbe3  	; $c61b  4c e3 cb
+lda $0200  	; $c61e  ad 00 02
+nop        	; $c621  ea
+nop        	; $c622  ea
+nop        	; $c623  ea
+nop        	; $c624  ea
+nop        	; $c625  ea
+nop        	; $c626  ea
+cmp #$41   	; $c627  c9 41
+bcc $c638  	; $c629  90 0d
+cmp #$5b   	; $c62b  c9 5b
+bcs $c638  	; $c62d  b0 09
+clc        	; $c62f  18
+adc #$20   	; $c630  69 20
+sta $0200  	; $c632  8d 00 02
+jmp $c649  	; $c635  4c 49 c6
+lda $0200  	; $c638  ad 00 02
+cmp #$c1   	; $c63b  c9 c1
+bcc $c649  	; $c63d  90 0a
+cmp #$db   	; $c63f  c9 db
+bcs $c649  	; $c641  b0 06
+sec        	; $c643  38
+sbc #$80   	; $c644  e9 80
+sta $0200  	; $c646  8d 00 02
+cmp #$14   	; $c649  c9 14
+bne $c652  	; $c64b  d0 05
+lda #$08   	; $c64d  a9 08
+sta $0200  	; $c64f  8d 00 02
+cmp #$83   	; $c652  c9 83
+bne $c65b  	; $c654  d0 05
+lda #$10   	; $c656  a9 10
+sta $0200  	; $c658  8d 00 02
+ldx #$05   	; $c65b  a2 05
+jsr chkout  	; $c65d  20 c9 ff
+lda $0200  	; $c660  ad 00 02
+jsr chrout  	; $c663  20 d2 ff
+jsr clrchn  	; $c666  20 cc ff
+jmp $c5b0  	; $c669  4c b0 c5
+rts        	; $c66c  60
+lda #$12   	; $c66d  a9 12
+jsr chrout  	; $c66f  20 d2 ff
+lda #$20   	; $c672  a9 20
+jsr chrout  	; $c674  20 d2 ff
+lda #$9d   	; $c677  a9 9d
+jsr chrout  	; $c679  20 d2 ff
+lda #$92   	; $c67c  a9 92
+jsr chrout  	; $c67e  20 d2 ff
+jmp $c737  	; $c681  4c 37 c7
+nop        	; $c684  ea
+nop        	; $c685  ea
+nop        	; $c686  ea
+nop        	; $c687  ea
+pla        	; $c688  68
+tsx        	; $c689  ba
+cpx $c81c  	; $c68a  ec 1c c8
+bne $c688  	; $c68d  d0 f9
+lda #$01   	; $c68f  a9 01
+sta $0200  	; $c691  8d 00 02
+rts        	; $c694  60
+lda $0326  	; $c695  ad 26 03
+cmp #$ba   	; $c698  c9 ba
+bne $c6a3  	; $c69a  d0 07
+lda $0327  	; $c69c  ad 27 03
+cmp #$c6   	; $c69f  c9 c6
+beq $c6b9  	; $c6a1  f0 16
+lda $0326  	; $c6a3  ad 26 03
+sta $cb02  	; $c6a6  8d 02 cb
+lda $0327  	; $c6a9  ad 27 03
+sta $cb03  	; $c6ac  8d 03 cb
+lda #$ba   	; $c6af  a9 ba
+sta $0326  	; $c6b1  8d 26 03
+lda #$c6   	; $c6b4  a9 c6
+sta $0327  	; $c6b6  8d 27 03
+rts        	; $c6b9  60
+
+; output routine
+
+pha        	; $c6ba  48
+lda dflto  	; $c6bb  a5 9a
+cmp #$03   	; $c6bd  c9 03
+bne $c6c5  	; $c6bf  d0 04
+pla        	; $c6c1  68
+jmp ($cb02)	; $c6c2  6c 02 cb
+
+bcc $c6cb  	; $c6c5  90 04
+pla        	; $c6c7  68
+jmp ($cb02)	; $c6c8  6c 02 cb
+
+lsr        	; $c6cb  4a
+pla        	; $c6cc  68
+sta dflto  	; $c6cd  85 9e
+txa        	; $c6cf  8a
+pha        	; $c6d0  48
+tya        	; $c6d1  98
+pha        	; $c6d2  48
+bcc $c6f8  	; $c6d3  90 23
+jsr $f80d  	; $c6d5  20 0d f8
+bne $c6e8  	; $c6d8  d0 0e
+jsr $f864  	; $c6da  20 64 f8
+bcs $c6ed  	; $c6dd  b0 0e
+lda #$02   	; $c6df  a9 02
+ldy #$00   	; $c6e1  a0 00
+sta ($b2),y	; $c6e3  91 b2
+iny        	; $c6e5  c8
+sty $a6    	; $c6e6  84 a6
+lda $9e    	; $c6e8  a5 9e
+sta ($b2),y	; $c6ea  91 b2
+clc        	; $c6ec  18
+pla        	; $c6ed  68
+tay        	; $c6ee  a8
+pla        	; $c6ef  68
+tax        	; $c6f0  aa
+lda $9e    	; $c6f1  a5 9e
+bcc $c6f7  	; $c6f3  90 02
+lda #$00   	; $c6f5  a9 00
+rts        	; $c6f7  60
+jsr $c701  	; $c6f8  20 01 c7
+jmp $c6ec  	; $c6fb  4c ec c6
+jsr $c712  	; $c6fe  20 12 c7
+ldy rodbe  	; $c701  ac 9e 02
+iny        	; $c704  c8
+cpy rodbs  	; $c705  cc 9d 02
+beq $c6fe  	; $c708  f0 f4
+sty rodbe  	; $c70a  8c 9e 02
+dey        	; $c70d  88
+lda $9e    	; $c70e  a5 9e
+sta ($f9),y	; $c710  91 f9
+lda enabl  	; $c712  ad a1 02
+lsr        	; $c715  4a
+bcs $c736  	; $c716  b0 1e
+lda #$10   	; $c718  a9 10
+sta $dd0e  	; $c71a  8d 0e dd
+lda $cb00  	; $c71d  ad 00 cb
+sta $dd04  	; $c720  8d 04 dd
+lda $cb01  	; $c723  ad 01 cb
+sta $dd05  	; $c726  8d 05 dd
+lda #$81   	; $c729  a9 81
+jsr $ef3b  	; $c72b  20 3b ef
+jsr $ef06  	; $c72e  20 06 ef
+lda #$11   	; $c731  a9 11
+sta $dd0e  	; $c733  8d 0e dd
+rts        	; $c736  60
+lda $028d  	; $c737  ad 8d 02
+cmp #$02   	; $c73a  c9 02
+beq $c74a  	; $c73c  f0 0c
+lda ci2prb  	; $c73e  ad 01 dd
+and #$10   	; $c741  29 10
+cmp #$10   	; $c743  c9 10
+beq $c74a  	; $c745  f0 03
+jmp $c68f  	; $c747  4c 8f c6
+jmp $c688  	; $c74a  4c 88 c6
+brk        	; $c74d  00
+brk        	; $c74e  00
+
+; empty space? 49 bytes
+
+nop        	; $c74f  ea
+nop        	; $c750  ea
+nop        	; $c751  ea
+nop        	; $c752  ea
+nop        	; $c753  ea
+nop        	; $c754  ea
+nop        	; $c755  ea
+nop        	; $c756  ea
+nop        	; $c757  ea
+nop        	; $c758  ea
+nop        	; $c759  ea
+nop        	; $c75a  ea
+nop        	; $c75b  ea
+nop        	; $c75c  ea
+nop        	; $c75d  ea
+nop        	; $c75e  ea
+nop        	; $c75f  ea
+nop        	; $c760  ea
+nop        	; $c761  ea
+nop        	; $c762  ea
+nop        	; $c763  ea
+nop        	; $c764  ea
+nop        	; $c765  ea
+nop        	; $c766  ea
+nop        	; $c767  ea
+nop        	; $c768  ea
+nop        	; $c769  ea
+nop        	; $c76a  ea
+nop        	; $c76b  ea
+nop        	; $c76c  ea
+nop        	; $c76d  ea
+nop        	; $c76e  ea
+nop        	; $c76f  ea
+nop        	; $c770  ea
+nop        	; $c771  ea
+nop        	; $c772  ea
+nop        	; $c773  ea
+nop        	; $c774  ea
+nop        	; $c775  ea
+nop        	; $c776  ea
+nop        	; $c777  ea
+nop        	; $c778  ea
+nop        	; $c779  ea
+nop        	; $c77a  ea
+nop        	; $c77b  ea
+nop        	; $c77c  ea
+nop        	; $c77d  ea
+nop        	; $c77e  ea
+nop        	; $c77f  ea
+
+lda #$08   	; $c780  a9 08
+sta $ba    	; $c782  85 ba
+lda #$01   	; $c784  a9 01
+ldx #$fa   	; $c786  a2 fa
+ldy #$c7   	; $c788  a0 c7
+jsr setnam 	; $c78a  20 bd ff
+lda #$60   	; $c78d  a9 60
+sta $b9    	; $c78f  85 b9
+jsr $f3d5  	; $c791  20 d5 f3
+lda $ba    	; $c794  a5 ba
+jsr $ffb4  	; $c796  20 b4 ff
+lda $b9    	; $c799  a5 b9
+jsr $ff96  	; $c79b  20 96 ff
+lda #$00   	; $c79e  a9 00
+sta $90    	; $c7a0  85 90
+ldy #$03   	; $c7a2  a0 03
+sty $b7    	; $c7a4  84 b7
+jsr $ffa5  	; $c7a6  20 a5 ff
+sta $c3    	; $c7a9  85 c3
+jsr $ffa5  	; $c7ab  20 a5 ff
+sta $c4    	; $c7ae  85 c4
+ldy $90    	; $c7b0  a4 90
+bne $c7f2  	; $c7b2  d0 3e
+ldy $b7    	; $c7b4  a4 b7
+dey        	; $c7b6  88
+bne $c7a4  	; $c7b7  d0 eb
+ldx $c3    	; $c7b9  a6 c3
+lda $c4    	; $c7bb  a5 c4
+jsr $bdcd  	; $c7bd  20 cd bd
+lda #$20   	; $c7c0  a9 20
+; i think $e716 resets output to screen
+jsr $e716  	; $c7c2  20 16 e7
+jsr $ffa5  	; $c7c5  20 a5 ff
+ldx $90    	; $c7c8  a6 90
+bne $c7f2  	; $c7ca  d0 26
+cmp #$00   	; $c7cc  c9 00
+beq $c7e8  	; $c7ce  f0 18
+jsr $e716  	; $c7d0  20 16 e7
+jsr $ffe1  	; $c7d3  20 e1 ff
+beq $c7f2  	; $c7d6  f0 1a
+jsr getin  	; $c7d8  20 e4 ff
+beq $c7c5  	; $c7db  f0 e8
+cmp #$20   	; $c7dd  c9 20
+bne $c7c5  	; $c7df  d0 e4
+jsr getin  	; $c7e1  20 e4 ff
+beq $c7e1  	; $c7e4  f0 fb
+bne $c7c5  	; $c7e6  d0 dd
+lda #$0d   	; $c7e8  a9 0d
+jsr $e716  	; $c7ea  20 16 e7
+ldy #$02   	; $c7ed  a0 02
+jmp $c7a4  	; $c7ef  4c a4 c7
+jsr $f642  	; $c7f2  20 42 f6
+rts        	; $c7f5  60
+brk        	; $c7f6  00
+brk        	; $c7f7  00
+brk        	; $c7f8  00
+brk        	; $c7f9  00
+; $c7fa referenced by SETNAM:
+; .byte "$" (directory)
+bit $00    	; $c7fa  24 00
+brk        	; $c7fc  00
+brk        	; $c7fd  00
+brk        	; $c7fe  00
+brk        	; $c7ff  00
+
+; table
+
+brk        	; $c800  00
+brk        	; $c801  00
+brk        	; $c802  00
+brk        	; $c803  00
+brk        	; $c804  00
+brk        	; $c805  00
+brk        	; $c806  00
+brk        	; $c807  00
+brk        	; $c808  00
+brk        	; $c809  00
+brk        	; $c80a  00
+brk        	; $c80b  00
+brk        	; $c80c  00
+brk        	; $c80d  00
+brk        	; $c80e  00
+brk        	; $c80f  00
+brk        	; $c810  00
+brk        	; $c811  00
+brk        	; $c812  00
+brk        	; $c813  00
+brk        	; $c814  00
+brk        	; $c815  00
+brk        	; $c816  00
+brk        	; $c817  00
+isc $0000,x	; $c818  ff 00 00
+brk        	; $c81b  00
+brk        	; $c81c  00
+brk        	; $c81d  00
+brk        	; $c81e  00
+brk        	; $c81f  00
+brk        	; $c820  00
+brk        	; $c821  00
+brk        	; $c822  00
+brk        	; $c823  00
+brk        	; $c824  00
+brk        	; $c825  00
+brk        	; $c826  00
+brk        	; $c827  00
+brk        	; $c828  00
+brk        	; $c829  00
+brk        	; $c82a  00
+brk        	; $c82b  00
+brk        	; $c82c  00
+brk        	; $c82d  00
+brk        	; $c82e  00
+brk        	; $c82f  00
+brk        	; $c830  00
+brk        	; $c831  00
+brk        	; $c832  00
+brk        	; $c833  00
+brk        	; $c834  00
+brk        	; $c835  00
+brk        	; $c836  00
+brk        	; $c837  00
+brk        	; $c838  00
+brk        	; $c839  00
+brk        	; $c83a  00
+brk        	; $c83b  00
+brk        	; $c83c  00
+brk        	; $c83d  00
+brk        	; $c83e  00
+brk        	; $c83f  00
+brk        	; $c840  00
+brk        	; $c841  00
+brk        	; $c842  00
+brk        	; $c843  00
+brk        	; $c844  00
+brk        	; $c845  00
+brk        	; $c846  00
+brk        	; $c847  00
+brk        	; $c848  00
+brk        	; $c849  00
+brk        	; $c84a  00
+brk        	; $c84b  00
+brk        	; $c84c  00
+brk        	; $c84d  00
+brk        	; $c84e  00
+brk        	; $c84f  00
+brk        	; $c850  00
+brk        	; $c851  00
+brk        	; $c852  00
+brk        	; $c853  00
+brk        	; $c854  00
+brk        	; $c855  00
+brk        	; $c856  00
+brk        	; $c857  00
+brk        	; $c858  00
+brk        	; $c859  00
+brk        	; $c85a  00
+brk        	; $c85b  00
+brk        	; $c85c  00
+brk        	; $c85d  00
+brk        	; $c85e  00
+brk        	; $c85f  00
+brk        	; $c860  00
+brk        	; $c861  00
+brk        	; $c862  00
+brk        	; $c863  00
+brk        	; $c864  00
+brk        	; $c865  00
+brk        	; $c866  00
+brk        	; $c867  00
+brk        	; $c868  00
+brk        	; $c869  00
+brk        	; $c86a  00
+brk        	; $c86b  00
+brk        	; $c86c  00
+brk        	; $c86d  00
+brk        	; $c86e  00
+brk        	; $c86f  00
+
+; table:
+
+brk        	; $c870  00
+brk        	; $c871  00
+brk        	; $c872  00
+
+; table
+
+brk        	; $c873  00
+brk        	; $c874  00
+brk        	; $c875  00
+brk        	; $c876  00
+brk        	; $c877  00
+brk        	; $c878  00
+brk        	; $c879  00
+brk        	; $c87a  00
+brk        	; $c87b  00
+brk        	; $c87c  00
+brk        	; $c87d  00
+brk        	; $c87e  00
+brk        	; $c87f  00
+brk        	; $c880  00
+brk        	; $c881  00
+brk        	; $c882  00
+brk        	; $c883  00
+brk        	; $c884  00
+brk        	; $c885  00
+brk        	; $c886  00
+brk        	; $c887  00
+brk        	; $c888  00
+brk        	; $c889  00
+brk        	; $c88a  00
+brk        	; $c88b  00
+brk        	; $c88c  00
+brk        	; $c88d  00
+brk        	; $c88e  00
+brk        	; $c88f  00
+brk        	; $c890  00
+brk        	; $c891  00
+brk        	; $c892  00
+brk        	; $c893  00
+brk        	; $c894  00
+brk        	; $c895  00
+brk        	; $c896  00
+brk        	; $c897  00
+brk        	; $c898  00
+brk        	; $c899  00
+brk        	; $c89a  00
+brk        	; $c89b  00
+brk        	; $c89c  00
+brk        	; $c89d  00
+brk        	; $c89e  00
+brk        	; $c89f  00
+brk        	; $c8a0  00
+brk        	; $c8a1  00
+brk        	; $c8a2  00
+brk        	; $c8a3  00
+brk        	; $c8a4  00
+brk        	; $c8a5  00
+brk        	; $c8a6  00
+brk        	; $c8a7  00
+brk        	; $c8a8  00
+brk        	; $c8a9  00
+brk        	; $c8aa  00
+brk        	; $c8ab  00
+brk        	; $c8ac  00
+brk        	; $c8ad  00
+brk        	; $c8ae  00
+brk        	; $c8af  00
+brk        	; $c8b0  00
+brk        	; $c8b1  00
+brk        	; $c8b2  00
+brk        	; $c8b3  00
+brk        	; $c8b4  00
+brk        	; $c8b5  00
+brk        	; $c8b6  00
+brk        	; $c8b7  00
+brk        	; $c8b8  00
+brk        	; $c8b9  00
+brk        	; $c8ba  00
+brk        	; $c8bb  00
+brk        	; $c8bc  00
+brk        	; $c8bd  00
+brk        	; $c8be  00
+brk        	; $c8bf  00
+brk        	; $c8c0  00
+brk        	; $c8c1  00
+brk        	; $c8c2  00
+brk        	; $c8c3  00
+brk        	; $c8c4  00
+brk        	; $c8c5  00
+brk        	; $c8c6  00
+brk        	; $c8c7  00
+brk        	; $c8c8  00
+brk        	; $c8c9  00
+brk        	; $c8ca  00
+brk        	; $c8cb  00
+brk        	; $c8cc  00
+brk        	; $c8cd  00
+brk        	; $c8ce  00
+brk        	; $c8cf  00
+brk        	; $c8d0  00
+brk        	; $c8d1  00
+brk        	; $c8d2  00
+brk        	; $c8d3  00
+brk        	; $c8d4  00
+brk        	; $c8d5  00
+brk        	; $c8d6  00
+brk        	; $c8d7  00
+brk        	; $c8d8  00
+brk        	; $c8d9  00
+brk        	; $c8da  00
+brk        	; $c8db  00
+brk        	; $c8dc  00
+brk        	; $c8dd  00
+brk        	; $c8de  00
+brk        	; $c8df  00
+brk        	; $c8e0  00
+brk        	; $c8e1  00
+brk        	; $c8e2  00
+brk        	; $c8e3  00
+brk        	; $c8e4  00
+brk        	; $c8e5  00
+brk        	; $c8e6  00
+brk        	; $c8e7  00
+brk        	; $c8e8  00
+brk        	; $c8e9  00
+brk        	; $c8ea  00
+brk        	; $c8eb  00
+brk        	; $c8ec  00
+brk        	; $c8ed  00
+brk        	; $c8ee  00
+brk        	; $c8ef  00
+brk        	; $c8f0  00
+brk        	; $c8f1  00
+brk        	; $c8f2  00
+brk        	; $c8f3  00
+brk        	; $c8f4  00
+brk        	; $c8f5  00
+brk        	; $c8f6  00
+brk        	; $c8f7  00
+brk        	; $c8f8  00
+brk        	; $c8f9  00
+brk        	; $c8fa  00
+brk        	; $c8fb  00
+brk        	; $c8fc  00
+brk        	; $c8fd  00
+brk        	; $c8fe  00
+brk        	; $c8ff  00
+
+; table
+
+brk        	; $c900  00
+brk        	; $c901  00
+brk        	; $c902  00
+brk        	; $c903  00
+brk        	; $c904  00
+brk        	; $c905  00
+brk        	; $c906  00
+brk        	; $c907  00
+brk        	; $c908  00
+brk        	; $c909  00
+brk        	; $c90a  00
+brk        	; $c90b  00
+brk        	; $c90c  00
+brk        	; $c90d  00
+brk        	; $c90e  00
+brk        	; $c90f  00
+brk        	; $c910  00
+brk        	; $c911  00
+brk        	; $c912  00
+brk        	; $c913  00
+brk        	; $c914  00
+brk        	; $c915  00
+brk        	; $c916  00
+brk        	; $c917  00
+brk        	; $c918  00
+brk        	; $c919  00
+brk        	; $c91a  00
+brk        	; $c91b  00
+brk        	; $c91c  00
+brk        	; $c91d  00
+brk        	; $c91e  00
+brk        	; $c91f  00
+brk        	; $c920  00
+brk        	; $c921  00
+brk        	; $c922  00
+brk        	; $c923  00
+brk        	; $c924  00
+brk        	; $c925  00
+brk        	; $c926  00
+brk        	; $c927  00
+brk        	; $c928  00
+brk        	; $c929  00
+brk        	; $c92a  00
+brk        	; $c92b  00
+brk        	; $c92c  00
+brk        	; $c92d  00
+brk        	; $c92e  00
+brk        	; $c92f  00
+brk        	; $c930  00
+brk        	; $c931  00
+brk        	; $c932  00
+brk        	; $c933  00
+brk        	; $c934  00
+brk        	; $c935  00
+brk        	; $c936  00
+brk        	; $c937  00
+brk        	; $c938  00
+brk        	; $c939  00
+brk        	; $c93a  00
+brk        	; $c93b  00
+brk        	; $c93c  00
+brk        	; $c93d  00
+brk        	; $c93e  00
+brk        	; $c93f  00
+brk        	; $c940  00
+brk        	; $c941  00
+brk        	; $c942  00
+brk        	; $c943  00
+brk        	; $c944  00
+brk        	; $c945  00
+brk        	; $c946  00
+brk        	; $c947  00
+brk        	; $c948  00
+brk        	; $c949  00
+brk        	; $c94a  00
+brk        	; $c94b  00
+brk        	; $c94c  00
+brk        	; $c94d  00
+brk        	; $c94e  00
+brk        	; $c94f  00
+brk        	; $c950  00
+brk        	; $c951  00
+brk        	; $c952  00
+brk        	; $c953  00
+brk        	; $c954  00
+brk        	; $c955  00
+brk        	; $c956  00
+brk        	; $c957  00
+brk        	; $c958  00
+brk        	; $c959  00
+brk        	; $c95a  00
+brk        	; $c95b  00
+brk        	; $c95c  00
+brk        	; $c95d  00
+brk        	; $c95e  00
+brk        	; $c95f  00
+brk        	; $c960  00
+brk        	; $c961  00
+brk        	; $c962  00
+brk        	; $c963  00
+brk        	; $c964  00
+brk        	; $c965  00
+brk        	; $c966  00
+brk        	; $c967  00
+brk        	; $c968  00
+brk        	; $c969  00
+brk        	; $c96a  00
+brk        	; $c96b  00
+brk        	; $c96c  00
+brk        	; $c96d  00
+brk        	; $c96e  00
+brk        	; $c96f  00
+
+; table
+
+brk        	; $c970  00
+brk        	; $c971  00
+brk        	; $c972  00
+brk        	; $c973  00
+brk        	; $c974  00
+brk        	; $c975  00
+brk        	; $c976  00
+brk        	; $c977  00
+brk        	; $c978  00
+brk        	; $c979  00
+brk        	; $c97a  00
+brk        	; $c97b  00
+brk        	; $c97c  00
+brk        	; $c97d  00
+brk        	; $c97e  00
+brk        	; $c97f  00
+brk        	; $c980  00
+brk        	; $c981  00
+brk        	; $c982  00
+brk        	; $c983  00
+brk        	; $c984  00
+brk        	; $c985  00
+brk        	; $c986  00
+brk        	; $c987  00
+brk        	; $c988  00
+brk        	; $c989  00
+brk        	; $c98a  00
+brk        	; $c98b  00
+brk        	; $c98c  00
+brk        	; $c98d  00
+brk        	; $c98e  00
+brk        	; $c98f  00
+brk        	; $c990  00
+brk        	; $c991  00
+brk        	; $c992  00
+brk        	; $c993  00
+brk        	; $c994  00
+brk        	; $c995  00
+brk        	; $c996  00
+brk        	; $c997  00
+brk        	; $c998  00
+brk        	; $c999  00
+brk        	; $c99a  00
+brk        	; $c99b  00
+brk        	; $c99c  00
+brk        	; $c99d  00
+brk        	; $c99e  00
+brk        	; $c99f  00
+brk        	; $c9a0  00
+brk        	; $c9a1  00
+brk        	; $c9a2  00
+brk        	; $c9a3  00
+brk        	; $c9a4  00
+brk        	; $c9a5  00
+brk        	; $c9a6  00
+brk        	; $c9a7  00
+brk        	; $c9a8  00
+brk        	; $c9a9  00
+brk        	; $c9aa  00
+brk        	; $c9ab  00
+brk        	; $c9ac  00
+brk        	; $c9ad  00
+brk        	; $c9ae  00
+brk        	; $c9af  00
+brk        	; $c9b0  00
+brk        	; $c9b1  00
+brk        	; $c9b2  00
+brk        	; $c9b3  00
+brk        	; $c9b4  00
+brk        	; $c9b5  00
+brk        	; $c9b6  00
+brk        	; $c9b7  00
+brk        	; $c9b8  00
+brk        	; $c9b9  00
+brk        	; $c9ba  00
+brk        	; $c9bb  00
+brk        	; $c9bc  00
+brk        	; $c9bd  00
+brk        	; $c9be  00
+brk        	; $c9bf  00
+brk        	; $c9c0  00
+brk        	; $c9c1  00
+brk        	; $c9c2  00
+brk        	; $c9c3  00
+brk        	; $c9c4  00
+brk        	; $c9c5  00
+brk        	; $c9c6  00
+brk        	; $c9c7  00
+brk        	; $c9c8  00
+brk        	; $c9c9  00
+brk        	; $c9ca  00
+brk        	; $c9cb  00
+brk        	; $c9cc  00
+brk        	; $c9cd  00
+brk        	; $c9ce  00
+brk        	; $c9cf  00
+brk        	; $c9d0  00
+brk        	; $c9d1  00
+brk        	; $c9d2  00
+brk        	; $c9d3  00
+brk        	; $c9d4  00
+brk        	; $c9d5  00
+brk        	; $c9d6  00
+brk        	; $c9d7  00
+brk        	; $c9d8  00
+brk        	; $c9d9  00
+brk        	; $c9da  00
+brk        	; $c9db  00
+brk        	; $c9dc  00
+brk        	; $c9dd  00
+brk        	; $c9de  00
+brk        	; $c9df  00
+brk        	; $c9e0  00
+brk        	; $c9e1  00
+brk        	; $c9e2  00
+brk        	; $c9e3  00
+brk        	; $c9e4  00
+brk        	; $c9e5  00
+brk        	; $c9e6  00
+brk        	; $c9e7  00
+brk        	; $c9e8  00
+brk        	; $c9e9  00
+brk        	; $c9ea  00
+brk        	; $c9eb  00
+brk        	; $c9ec  00
+brk        	; $c9ed  00
+brk        	; $c9ee  00
+brk        	; $c9ef  00
+brk        	; $c9f0  00
+brk        	; $c9f1  00
+brk        	; $c9f2  00
+brk        	; $c9f3  00
+brk        	; $c9f4  00
+brk        	; $c9f5  00
+brk        	; $c9f6  00
+brk        	; $c9f7  00
+brk        	; $c9f8  00
+brk        	; $c9f9  00
+brk        	; $c9fa  00
+brk        	; $c9fb  00
+brk        	; $c9fc  00
+brk        	; $c9fd  00
+brk        	; $c9fe  00
+brk        	; $c9ff  00
+
+ora ($0c,x)	; $ca00  01 0c
+ora ($1e),y	; $ca02  11 1e
+rla ($2d,x)	; $ca04  23 2d
+kil        	; $ca06  32
+rla $3c,x  	; $ca07  37 3c
+eor ($00,x)	; $ca09  41 00
+brk        	; $ca0b  00
+isc $ffff,x	; $ca0c  ff ff ff
+brk        	; $ca0f  00
+eor ($d7,x)	; $ca10  41 d7
+sta ($33,x)	; $ca12  81 33
+lax $750f,y	; $ca14  bf 0f 75
+sbc $8351  	; $ca17  ed 51 83
+cpy $14    	; $ca1a  c4 14
+nop $04    	; $ca1c  64 04
+rti        	; $ca1e  40
+rra $f4,x  	; $ca1f  77 f4
+ora $c07b  	; $ca21  0d 7b c0
+rts        	; $ca24  60
+ror $009c,x	; $ca25  7e 9c 00
+asl        	; $ca28  0a
+nop $3c,x  	; $ca29  14 3c
+brk        	; $ca2b  00
+brk        	; $ca2c  00
+brk        	; $ca2d  00
+brk        	; $ca2e  00
+brk        	; $ca2f  00
+brk        	; $ca30  00
+brk        	; $ca31  00
+brk        	; $ca32  00
+brk        	; $ca33  00
+brk        	; $ca34  00
+brk        	; $ca35  00
+brk        	; $ca36  00
+brk        	; $ca37  00
+brk        	; $ca38  00
+brk        	; $ca39  00
+brk        	; $ca3a  00
+brk        	; $ca3b  00
+brk        	; $ca3c  00
+ora ($02,x)	; $ca3d  01 02
+kil        	; $ca3f  02
+slo ($03,x)	; $ca40  03 03
+slo ($04,x)	; $ca42  03 04
+nop $04    	; $ca44  04 04
+ora $05    	; $ca46  05 05
+asl $06    	; $ca48  06 06
+asl $06    	; $ca4a  06 06
+slo $07    	; $ca4c  07 07
+php        	; $ca4e  08
+ora #$09   	; $ca4f  09 09
+ora #$0a   	; $ca51  09 0a
+asl        	; $ca53  0a
+asl        	; $ca54  0a
+asl        	; $ca55  0a
+brk        	; $ca56  00
+brk        	; $ca57  00
+brk        	; $ca58  00
+brk        	; $ca59  00
+brk        	; $ca5a  00
+brk        	; $ca5b  00
+brk        	; $ca5c  00
+brk        	; $ca5d  00
+brk        	; $ca5e  00
+brk        	; $ca5f  00
+brk        	; $ca60  00
+brk        	; $ca61  00
+brk        	; $ca62  00
+brk        	; $ca63  00
+brk        	; $ca64  00
+brk        	; $ca65  00
+brk        	; $ca66  00
+brk        	; $ca67  00
+brk        	; $ca68  00
+brk        	; $ca69  00
+brk        	; $ca6a  00
+brk        	; $ca6b  00
+brk        	; $ca6c  00
+brk        	; $ca6d  00
+brk        	; $ca6e  00
+brk        	; $ca6f  00
+brk        	; $ca70  00
+brk        	; $ca71  00
+brk        	; $ca72  00
+brk        	; $ca73  00
+brk        	; $ca74  00
+brk        	; $ca75  00
+brk        	; $ca76  00
+brk        	; $ca77  00
+brk        	; $ca78  00
+brk        	; $ca79  00
+brk        	; $ca7a  00
+brk        	; $ca7b  00
+brk        	; $ca7c  00
+brk        	; $ca7d  00
+brk        	; $ca7e  00
+brk        	; $ca7f  00
+brk        	; $ca80  00
+brk        	; $ca81  00
+brk        	; $ca82  00
+brk        	; $ca83  00
+brk        	; $ca84  00
+brk        	; $ca85  00
+brk        	; $ca86  00
+brk        	; $ca87  00
+brk        	; $ca88  00
+brk        	; $ca89  00
+brk        	; $ca8a  00
+brk        	; $ca8b  00
+brk        	; $ca8c  00
+brk        	; $ca8d  00
+brk        	; $ca8e  00
+brk        	; $ca8f  00
+brk        	; $ca90  00
+brk        	; $ca91  00
+brk        	; $ca92  00
+brk        	; $ca93  00
+brk        	; $ca94  00
+brk        	; $ca95  00
+brk        	; $ca96  00
+brk        	; $ca97  00
+brk        	; $ca98  00
+brk        	; $ca99  00
+brk        	; $ca9a  00
+brk        	; $ca9b  00
+brk        	; $ca9c  00
+brk        	; $ca9d  00
+brk        	; $ca9e  00
+brk        	; $ca9f  00
+brk        	; $caa0  00
+brk        	; $caa1  00
+brk        	; $caa2  00
+brk        	; $caa3  00
+brk        	; $caa4  00
+brk        	; $caa5  00
+brk        	; $caa6  00
+brk        	; $caa7  00
+brk        	; $caa8  00
+brk        	; $caa9  00
+brk        	; $caaa  00
+brk        	; $caab  00
+brk        	; $caac  00
+brk        	; $caad  00
+brk        	; $caae  00
+brk        	; $caaf  00
+brk        	; $cab0  00
+brk        	; $cab1  00
+brk        	; $cab2  00
+brk        	; $cab3  00
+brk        	; $cab4  00
+brk        	; $cab5  00
+brk        	; $cab6  00
+brk        	; $cab7  00
+brk        	; $cab8  00
+brk        	; $cab9  00
+brk        	; $caba  00
+brk        	; $cabb  00
+brk        	; $cabc  00
+brk        	; $cabd  00
+brk        	; $cabe  00
+brk        	; $cabf  00
+brk        	; $cac0  00
+brk        	; $cac1  00
+brk        	; $cac2  00
+brk        	; $cac3  00
+brk        	; $cac4  00
+brk        	; $cac5  00
+brk        	; $cac6  00
+brk        	; $cac7  00
+brk        	; $cac8  00
+brk        	; $cac9  00
+brk        	; $caca  00
+brk        	; $cacb  00
+brk        	; $cacc  00
+brk        	; $cacd  00
+brk        	; $cace  00
+brk        	; $cacf  00
+brk        	; $cad0  00
+brk        	; $cad1  00
+brk        	; $cad2  00
+brk        	; $cad3  00
+brk        	; $cad4  00
+brk        	; $cad5  00
+brk        	; $cad6  00
+brk        	; $cad7  00
+brk        	; $cad8  00
+brk        	; $cad9  00
+brk        	; $cada  00
+brk        	; $cadb  00
+brk        	; $cadc  00
+brk        	; $cadd  00
+brk        	; $cade  00
+brk        	; $cadf  00
+brk        	; $cae0  00
+brk        	; $cae1  00
+brk        	; $cae2  00
+brk        	; $cae3  00
+brk        	; $cae4  00
+brk        	; $cae5  00
+brk        	; $cae6  00
+brk        	; $cae7  00
+brk        	; $cae8  00
+brk        	; $cae9  00
+brk        	; $caea  00
+brk        	; $caeb  00
+brk        	; $caec  00
+brk        	; $caed  00
+brk        	; $caee  00
+brk        	; $caef  00
+brk        	; $caf0  00
+brk        	; $caf1  00
+brk        	; $caf2  00
+brk        	; $caf3  00
+brk        	; $caf4  00
+brk        	; $caf5  00
+brk        	; $caf6  00
+brk        	; $caf7  00
+brk        	; $caf8  00
+brk        	; $caf9  00
+brk        	; $cafa  00
+brk        	; $cafb  00
+brk        	; $cafc  00
+brk        	; $cafd  00
+brk        	; $cafe  00
+brk        	; $caff  00
+
+brk        	; $cb00  00
+brk        	; $cb01  00
+; $F1CA is normal CHROUT vector
+dex        	; $cb02  ca
+sbc ($00),y	; $cb03  f1 00
+brk        	; $cb05  00
+brk        	; $cb06  00
+brk        	; $cb07  00
+brk        	; $cb08  00
+brk        	; $cb09  00
+brk        	; $cb0a  00
+brk        	; $cb0b  00
+brk        	; $cb0c  00
+brk        	; $cb0d  00
+brk        	; $cb0e  00
+brk        	; $cb0f  00
+brk        	; $cb10  00
+brk        	; $cb11  00
+brk        	; $cb12  00
+
+lda #$36   	; $cb13  a9 36
+sta $01    	; $cb15  85 01
+jsr $b9c4  	; $cb17  20 c4 b9
+lda #$37   	; $cb1a  a9 37
+sta $01    	; $cb1c  85 01
+rts        	; $cb1e  60
+brk        	; $cb1f  00
+ldx #$00   	; $cb20  a2 00
+ldy #$36   	; $cb22  a0 36
+sty $01    	; $cb24  84 01
+ldy #$00   	; $cb26  a0 00
+lda ($fb),y	; $cb28  b1 fb
+sta $fd    	; $cb2a  85 fd
+ldy #$37   	; $cb2c  a0 37
+sty $01    	; $cb2e  84 01
+jsr $cb51  	; $cb30  20 51 cb
+lda $fd    	; $cb33  a5 fd
+cmp #$00   	; $cb35  c9 00
+beq $cb57  	; $cb37  f0 1e
+jsr chrout  	; $cb39  20 d2 ff
+lda $cff8  	; $cb3c  ad f8 cf
+beq $cb4e  	; $cb3f  f0 0d
+ldx #$05   	; $cb41  a2 05
+jsr chkout  	; $cb43  20 c9 ff
+lda $fd    	; $cb46  a5 fd
+jsr chrout  	; $cb48  20 d2 ff
+jsr clrchn  	; $cb4b  20 cc ff
+jmp $cb22  	; $cb4e  4c 22 cb
+
+inc $fb    	; $cb51  e6 fb
+bne $cb57  	; $cb53  d0 02
+inc $fc    	; $cb55  e6 fc
+rts        	; $cb57  60
+brk        	; $cb58  00
+brk        	; $cb59  00
+
+lda #$36   	; $cb5a  a9 36
+sta $01    	; $cb5c  85 01
+jsr $ae9d  	; $cb5e  20 9d ae
+lda #$37   	; $cb61  a9 37
+sta $01    	; $cb63  85 01
+jmp $c695  	; $cb65  4c 95 c6
+
+lda #$36   	; $cb68  a9 36
+sta $01    	; $cb6a  85 01
+jmp $af00  	; $cb6c  4c 00 af
+
+lda #$36   	; $cb6f  a9 36
+sta $01    	; $cb71  85 01
+jmp $b330  	; $cb73  4c 30 b3
+lda #$36   	; $cb76  a9 36
+sta $01    	; $cb78  85 01
+jmp $b300  	; $cb7a  4c 00 b3
+lda #$36   	; $cb7d  a9 36
+sta $01    	; $cb7f  85 01
+jmp $b917  	; $cb81  4c 17 b9
+
+lda #$36   	; $cb84  a9 36
+sta $01    	; $cb86  85 01
+jmp $a000  	; $cb88  4c 00 a0
+
+lda #$37   	; $cb8b  a9 37
+sta $01    	; $cb8d  85 01
+rts        	; $cb8f  60
+lda #$36   	; $cb90  a9 36
+sta $01    	; $cb92  85 01
+ldy $02    	; $cb94  a4 02
+lda $be00,y	; $cb96  b9 00 be
+sta $02    	; $cb99  85 02
+jmp $cb8b  	; $cb9b  4c 8b cb
+lda #$36   	; $cb9e  a9 36
+sta $01    	; $cba0  85 01
+ldy $02    	; $cba2  a4 02
+lda $bffa  	; $cba4  ad fa bf
+beq $cbaf  	; $cba7  f0 06
+lda $bc00,y	; $cba9  b9 00 bc
+jmp $cbb2  	; $cbac  4c b2 cb
+lda $bd00,y	; $cbaf  b9 00 bd
+sta $02    	; $cbb2  85 02
+jmp $cb8b  	; $cbb4  4c 8b cb
+lda $cffc  	; $cbb7  ad fc cf
+bne $cbc2  	; $cbba  d0 06
+jsr $cbce  	; $cbbc  20 ce cb
+jmp $c5b3  	; $cbbf  4c b3 c5
+
+lda #$36   	; $cbc2  a9 36
+sta $01    	; $cbc4  85 01
+jsr $b350  	; $cbc6  20 50 b3
+lda #$37   	; $cbc9  a9 37
+sta $01    	; $cbcb  85 01
+rts        	; $cbcd  60
+
+lda #$12   	; $cbce  a9 12
+jsr chrout  	; $cbd0  20 d2 ff
+lda #$3e   	; $cbd3  a9 3e
+jsr chrout  	; $cbd5  20 d2 ff
+lda #$9d   	; $cbd8  a9 9d
+jsr chrout  	; $cbda  20 d2 ff
+lda #$92   	; $cbdd  a9 92
+jsr chrout  	; $cbdf  20 d2 ff
+rts        	; $cbe2  60
+
+jsr getin  	; $cbe3  20 e4 ff
+beq $cbbf  	; $cbe6  f0 d7
+sta $0200  	; $cbe8  8d 00 02
+cmp #$85   	; $cbeb  c9 85
+bcc $cbf7  	; $cbed  90 08
+cmp #$8d   	; $cbef  c9 8d
+bcs $cbf7  	; $cbf1  b0 04
+sta $cffb  	; $cbf3  8d fb cf
+rts        	; $cbf6  60
+
+jmp $c61e  	; $cbf7  4c 1e c6
+
+brk        	; $cbfa  00
+brk        	; $cbfb  00
+brk        	; $cbfc  00
+brk        	; $cbfd  00
+brk        	; $cbfe  00
+brk        	; $cbff  00
+
+; page boundary
+
+jmp $ce6c  	; $cc00  4c 6c ce
+jmp $cc4f  	; $cc03  4c 4f cc
+brk        	; $cc06  00
+brk        	; $cc07  00
+brk        	; $cc08  00
+brk        	; $cc09  00
+brk        	; $cc0a  00
+brk        	; $cc0b  00
+tsx        	; $cc0c  ba
+rol $002a  	; $cc0d  2e 2a 00
+brk        	; $cc10  00
+brk        	; $cc11  00
+brk        	; $cc12  00
+brk        	; $cc13  00
+brk        	; $cc14  00
+brk        	; $cc15  00
+brk        	; $cc16  00
+brk        	; $cc17  00
+brk        	; $cc18  00
+sty $ae    	; $cc19  84 ae
+tas $8e02,y	; $cc1b  9b 02 8e
+shy $6002,x	; $cc1e  9c 02 60
+ldx #$00   	; $cc21  a2 00
+ldy #$00   	; $cc23  a0 00
+iny        	; $cc25  c8
+bne $cc25  	; $cc26  d0 fd
+inx        	; $cc28  e8
+cpx #$78   	; $cc29  e0 78
+bne $cc23  	; $cc2b  d0 f6
+rts        	; $cc2d  60
+lda ridbe  	; $cc2e  ad 9b 02
+cmp ridbs  	; $cc31  cd 9c 02
+beq $cc48  	; $cc34  f0 12
+ldy ridbs  	; $cc36  ac 9c 02
+lda ($f7),y	; $cc39  b1 f7
+sta $cc07  	; $cc3b  8d 07 cc
+pha        	; $cc3e  48
+inc ridbs  	; $cc3f  ee 9c 02
+lda #$00   	; $cc42  a9 00
+sta syno    	; $cc44  85 96
+pla        	; $cc46  68
+rts        	; $cc47  60
+lda #$02   	; $cc48  a9 02
+sta syno    	; $cc4a  85 96
+lda #$00   	; $cc4c  a9 00
+rts        	; $cc4e  60
+
+tsx        	; $cc4f  ba
+stx $cc0f  	; $cc50  8e 0f cc
+lda #$01   	; $cc53  a9 01
+sta $cc09  	; $cc55  8d 09 cc
+lda #$00   	; $cc58  a9 00
+sta $cc15  	; $cc5a  8d 15 cc
+sta $cc0b  	; $cc5d  8d 0b cc
+sta $cc08  	; $cc60  8d 08 cc
+sta $cc11  	; $cc63  8d 11 cc
+sta $cc12  	; $cc66  8d 12 cc
+jsr $ce5d  	; $cc69  20 5d ce
+jsr $cdf2  	; $cc6c  20 f2 cd
+lda #$15   	; $cc6f  a9 15
+jsr $cf6c  	; $cc71  20 6c cf
+jsr $ce05  	; $cc74  20 05 ce
+jsr $cc2e  	; $cc77  20 2e cc
+lda syno    	; $cc7a  a5 96
+bne $cc8f  	; $cc7c  d0 11
+lda $cc07  	; $cc7e  ad 07 cc
+cmp #$18   	; $cc81  c9 18
+beq $cce1  	; $cc83  f0 5c
+cmp #$01   	; $cc85  c9 01
+bne $cc8f  	; $cc87  d0 06
+ldy $cc15  	; $cc89  ac 15 cc
+jmp $cd05  	; $cc8c  4c 05 cd
+
+ldx $a1    	; $cc8f  a6 a1
+cpx $cc17  	; $cc91  ec 17 cc
+bne $cc74  	; $cc94  d0 de
+inc $cc11  	; $cc96  ee 11 cc
+lda $cc11  	; $cc99  ad 11 cc
+cmp #$06   	; $cc9c  c9 06
+bne $cc6c  	; $cc9e  d0 cc
+lda #$04   	; $cca0  a9 04
+jsr $ce1e  	; $cca2  20 1e ce
+jsr $cdf6  	; $cca5  20 f6 cd
+jsr $ce05  	; $cca8  20 05 ce
+jsr $cc2e  	; $ccab  20 2e cc
+lda syno    	; $ccae  a5 96
+beq $cccf  	; $ccb0  f0 1d
+ldy $cc15  	; $ccb2  ac 15 cc
+cpy #$00   	; $ccb5  c0 00
+bne $ccc5  	; $ccb7  d0 0c
+ldx $a1    	; $ccb9  a6 a1
+cpx $cc18  	; $ccbb  ec 18 cc
+bne $cca8  	; $ccbe  d0 e8
+lda #$08   	; $ccc0  a9 08
+jsr $ce1e  	; $ccc2  20 1e ce
+ldx $a1    	; $ccc5  a6 a1
+cpx $cc17  	; $ccc7  ec 17 cc
+beq $cd22  	; $ccca  f0 56
+jmp $cca8  	; $cccc  4c a8 cc
+
+lda $cc07  	; $cccf  ad 07 cc
+ldy $cc15  	; $ccd2  ac 15 cc
+cpy #$00   	; $ccd5  c0 00
+bne $cd05  	; $ccd7  d0 2c
+cmp #$01   	; $ccd9  c9 01
+beq $cd05  	; $ccdb  f0 28
+cmp #$18   	; $ccdd  c9 18
+bne $cce4  	; $ccdf  d0 03
+jsr $ce1c  	; $cce1  20 1c ce
+cmp #$04   	; $cce4  c9 04
+bne $ccf6  	; $cce6  d0 0e
+lda #$06   	; $cce8  a9 06
+jsr $cf6c  	; $ccea  20 6c cf
+lda $cc0e  	; $cced  ad 0e cc
+jsr $cfa0  	; $ccf0  20 a0 cf
+jmp $ce2c  	; $ccf3  4c 2c ce
+inc $cc08  	; $ccf6  ee 08 cc
+lda $cc08  	; $ccf9  ad 08 cc
+cmp #$ff   	; $ccfc  c9 ff
+bne $cca5  	; $ccfe  d0 a5
+lda #$01   	; $cd00  a9 01
+jsr $ce1e  	; $cd02  20 1e ce
+sta $c870,y	; $cd05  99 70 c8
+inc $cc15  	; $cd08  ee 15 cc
+lda $cc15  	; $cd0b  ad 15 cc
+cmp #$84   	; $cd0e  c9 84
+bne $cca5  	; $cd10  d0 93
+lda #$00   	; $cd12  a9 00
+sta $cc08  	; $cd14  8d 08 cc
+lda $c871  	; $cd17  ad 71 c8
+clc        	; $cd1a  18
+adc $c872  	; $cd1b  6d 72 c8
+cmp #$ff   	; $cd1e  c9 ff
+beq $cd47  	; $cd20  f0 25
+lda $cc0d  	; $cd22  ad 0d cc
+jsr $cfa0  	; $cd25  20 a0 cf
+inc $cc0b  	; $cd28  ee 0b cc
+lda $cc0b  	; $cd2b  ad 0b cc
+cmp #$0b   	; $cd2e  c9 0b
+beq $cd42  	; $cd30  f0 10
+lda #$00   	; $cd32  a9 00
+sta $cc15  	; $cd34  8d 15 cc
+jsr $cc1a  	; $cd37  20 1a cc
+lda #$15   	; $cd3a  a9 15
+jsr $cf6c  	; $cd3c  20 6c cf
+jmp $cca5  	; $cd3f  4c a5 cc
+
+lda #$04   	; $cd42  a9 04
+jsr $ce1e  	; $cd44  20 1e ce
+lda $c871  	; $cd47  ad 71 c8
+cmp $cc09  	; $cd4a  cd 09 cc
+beq $cd80  	; $cd4d  f0 31
+lda $cc09  	; $cd4f  ad 09 cc
+sec        	; $cd52  38
+sbc #$01   	; $cd53  e9 01
+tax        	; $cd55  aa
+cpx $c871  	; $cd56  ec 71 c8
+beq $cd73  	; $cd59  f0 18
+ldx $c871  	; $cd5b  ae 71 c8
+cpx #$ff   	; $cd5e  e0 ff
+bne $cd69  	; $cd60  d0 07
+ldx $cc09  	; $cd62  ae 09 cc
+cpx #$00   	; $cd65  e0 00
+beq $cd73  	; $cd67  f0 0a
+lda #$18   	; $cd69  a9 18
+jsr $cf6c  	; $cd6b  20 6c cf
+lda #$01   	; $cd6e  a9 01
+jsr $ce1e  	; $cd70  20 1e ce
+lda #$2f   	; $cd73  a9 2f
+jsr $cfa0  	; $cd75  20 a0 cf
+lda #$06   	; $cd78  a9 06
+jsr $cf6c  	; $cd7a  20 6c cf
+jmp $cde4  	; $cd7d  4c e4 cd
+lda #$00   	; $cd80  a9 00
+sta $cc0a  	; $cd82  8d 0a cc
+ldy #$03   	; $cd85  a0 03
+lda $cc0a  	; $cd87  ad 0a cc
+clc        	; $cd8a  18
+adc $c870,y	; $cd8b  79 70 c8
+and #$ff   	; $cd8e  29 ff
+sta $cc0a  	; $cd90  8d 0a cc
+iny        	; $cd93  c8
+cpy #$83   	; $cd94  c0 83
+bne $cd87  	; $cd96  d0 ef
+lda $c870,y	; $cd98  b9 70 c8
+cmp $cc0a  	; $cd9b  cd 0a cc
+beq $cda3  	; $cd9e  f0 03
+jmp $cd22  	; $cda0  4c 22 cd
+
+lda $cc12  	; $cda3  ad 12 cc
+cmp #$01   	; $cda6  c9 01
+beq $cdb2  	; $cda8  f0 08
+lda #$01   	; $cdaa  a9 01
+sta $cc12  	; $cdac  8d 12 cc
+jmp $cdc2  	; $cdaf  4c c2 cd
+ldy #$00   	; $cdb2  a0 00
+ldx #$02   	; $cdb4  a2 02
+jsr chkout  	; $cdb6  20 c9 ff
+lda $c970,y	; $cdb9  b9 70 c9
+jsr chrout  	; $cdbc  20 d2 ff
+iny        	; $cdbf  c8
+bpl $cdb4  	; $cdc0  10 f2
+ldy #$00   	; $cdc2  a0 00
+lda $c873,y	; $cdc4  b9 73 c8
+sta $c970,y	; $cdc7  99 70 c9
+iny        	; $cdca  c8
+bpl $cdc4  	; $cdcb  10 f7
+jsr $ce5d  	; $cdcd  20 5d ce
+jsr $cc21  	; $cdd0  20 21 cc
+jsr $ce5d  	; $cdd3  20 5d ce
+lda #$06   	; $cdd6  a9 06
+jsr $cf6c  	; $cdd8  20 6c cf
+inc $cc09  	; $cddb  ee 09 cc
+lda $cc0c  	; $cdde  ad 0c cc
+jsr $cfa0  	; $cde1  20 a0 cf
+lda #$00   	; $cde4  a9 00
+sta $cc15  	; $cde6  8d 15 cc
+sta $cc0b  	; $cde9  8d 0b cc
+sta $cc08  	; $cdec  8d 08 cc
+jmp $cca5  	; $cdef  4c a5 cc
+ldy #$00   	; $cdf2  a0 00
+sty $a0    	; $cdf4  84 a0
+ldy $a1    	; $cdf6  a4 a1
+iny        	; $cdf8  c8
+sty $cc16  	; $cdf9  8c 16 cc
+iny        	; $cdfc  c8
+sty $cc17  	; $cdfd  8c 17 cc
+iny        	; $ce00  c8
+sty $cc18  	; $ce01  8c 18 cc
+rts        	; $ce04  60
+lda ci2prb  	; $ce05  ad 01 dd
+and #$10   	; $ce08  29 10
+cmp $cffd  	; $ce0a  cd fd cf
+beq $ce14  	; $ce0d  f0 05
+lda #$07   	; $ce0f  a9 07
+jmp $ce1e  	; $ce11  4c 1e ce
+ldx $028d  	; $ce14  ae 8d 02
+cpx #$02   	; $ce17  e0 02
+beq $ce1c  	; $ce19  f0 01
+rts        	; $ce1b  60
+
+lda #$03   	; $ce1c  a9 03
+sta $cc06  	; $ce1e  8d 06 cc
+pla        	; $ce21  68
+tsx        	; $ce22  ba
+cpx $cc0f  	; $ce23  ec 0f cc
+bne $ce21  	; $ce26  d0 f9
+jsr clrchn  	; $ce28  20 cc ff
+rts        	; $ce2b  60
+ldy #$7f   	; $ce2c  a0 7f
+lda $c970,y	; $ce2e  b9 70 c9
+cmp #$1a   	; $ce31  c9 1a
+bne $ce41  	; $ce33  d0 0c
+dey        	; $ce35  88
+cpy #$00   	; $ce36  c0 00
+bne $ce2e  	; $ce38  d0 f4
+lda $c970  	; $ce3a  ad 70 c9
+cmp #$1a   	; $ce3d  c9 1a
+beq $ce58  	; $ce3f  f0 17
+iny        	; $ce41  c8
+sty $cc10  	; $ce42  8c 10 cc
+ldy #$00   	; $ce45  a0 00
+ldx #$02   	; $ce47  a2 02
+jsr chkout  	; $ce49  20 c9 ff
+lda $c970,y	; $ce4c  b9 70 c9
+jsr chrout  	; $ce4f  20 d2 ff
+iny        	; $ce52  c8
+cpy $cc10  	; $ce53  cc 10 cc
+bne $ce47  	; $ce56  d0 ef
+lda #$00   	; $ce58  a9 00
+jsr $ce1e  	; $ce5a  20 1e ce
+jsr $ef7e  	; $ce5d  20 7e ef
+lda enabl  	; $ce60  ad a1 02
+cmp #$80   	; $ce63  c9 80
+beq $ce5d  	; $ce65  f0 f6
+cmp #$92   	; $ce67  c9 92
+beq $ce5d  	; $ce69  f0 f2
+rts        	; $ce6b  60
+tsx        	; $ce6c  ba
+stx $cc0f  	; $ce6d  8e 0f cc
+lda #$84   	; $ce70  a9 84
+sta $cc19  	; $ce72  8d 19 cc
+jsr $cc1a  	; $ce75  20 1a cc
+lda #$01   	; $ce78  a9 01
+sta $c870  	; $ce7a  8d 70 c8
+sta $c871  	; $ce7d  8d 71 c8
+eor #$ff   	; $ce80  49 ff
+sta $c872  	; $ce82  8d 72 c8
+jsr $ce05  	; $ce85  20 05 ce
+jsr $cf94  	; $ce88  20 94 cf
+lda #$03   	; $ce8b  a9 03
+sta $cc15  	; $ce8d  8d 15 cc
+ldx #$00   	; $ce90  a2 00
+stx $cc0a  	; $ce92  8e 0a cc
+stx $cc13  	; $ce95  8e 13 cc
+jsr clrchn  	; $ce98  20 cc ff
+jsr $ce14  	; $ce9b  20 14 ce
+ldx #$02   	; $ce9e  a2 02
+jsr chkin  	; $cea0  20 c6 ff
+jsr getin  	; $cea3  20 e4 ff
+sta $cc07  	; $cea6  8d 07 cc
+jsr readst  	; $cea9  20 b7 ff
+and #$c3   	; $ceac  29 c3
+sta $cc13  	; $ceae  8d 13 cc
+bne $cebf  	; $ceb1  d0 0c
+lda $cc07  	; $ceb3  ad 07 cc
+jsr $cf7e  	; $ceb6  20 7e cf
+cmp #$83   	; $ceb9  c9 83
+bne $ce9b  	; $cebb  d0 de
+beq $ced5  	; $cebd  f0 16
+lda $cc07  	; $cebf  ad 07 cc
+jsr $cf7e  	; $cec2  20 7e cf
+cmp #$83   	; $cec5  c9 83
+beq $ced5  	; $cec7  f0 0c
+lda #$1a   	; $cec9  a9 1a
+sta $cc07  	; $cecb  8d 07 cc
+jsr $cf7e  	; $cece  20 7e cf
+cmp #$83   	; $ced1  c9 83
+bne $cece  	; $ced3  d0 f9
+ced5:
+lda $cc0a  	; $ced5  ad 0a cc
+sta $c8f3  	; $ced8  8d f3 c8
+lda #$00   	; $cedb  a9 00
+sta $cc14  	; $cedd  8d 14 cc
+jsr $cc1a  	; $cee0  20 1a cc
+ldx $cc14  	; $cee3  ae 14 cc
+lda $c870,x	; $cee6  bd 70 c8
+jsr $cf6c  	; $cee9  20 6c cf
+jsr $ce05  	; $ceec  20 05 ce
+inc $cc14  	; $ceef  ee 14 cc
+lda $cc19  	; $cef2  ad 19 cc
+cmp $cc14  	; $cef5  cd 14 cc
+bne $cee3  	; $cef8  d0 e9
+jsr $cdf6  	; $cefa  20 f6 cd
+jsr $ce05  	; $cefd  20 05 ce
+jsr $cfab  	; $cf00  20 ab cf
+lda $cc07  	; $cf03  ad 07 cc
+bne $cf12  	; $cf06  d0 0a
+lda $a1    	; $cf08  a5 a1
+cmp $cc17  	; $cf0a  cd 17 cc
+beq $cf19  	; $cf0d  f0 0a
+jmp $cefd  	; $cf0f  4c fd ce
+lda $cc07  	; $cf12  ad 07 cc
+cmp #$15   	; $cf15  c9 15
+bne $cf22  	; $cf17  d0 09
+lda $cc0d  	; $cf19  ad 0d cc
+jsr $cfa0  	; $cf1c  20 a0 cf
+jmp $ced5  	; $cf1f  4c d5 ce
+cmp #$18   	; $cf22  c9 18
+bne $cf29  	; $cf24  d0 03
+jsr $ce1c  	; $cf26  20 1c ce
+cmp #$06   	; $cf29  c9 06
+bne $cefd  	; $cf2b  d0 d0
+lda $cc13  	; $cf2d  ad 13 cc
+beq $cf58  	; $cf30  f0 26
+lda #$04   	; $cf32  a9 04
+jsr $cf6c  	; $cf34  20 6c cf
+jsr $cdf2  	; $cf37  20 f2 cd
+jsr $cc2e  	; $cf3a  20 2e cc
+lda syno    	; $cf3d  a5 96
+beq $cf48  	; $cf3f  f0 07
+lda $a1    	; $cf41  a5 a1
+cmp $cc16  	; $cf43  cd 16 cc
+bne $cf3a  	; $cf46  d0 f2
+lda $cc13  	; $cf48  ad 13 cc
+and #$40   	; $cf4b  29 40
+beq $cf26  	; $cf4d  f0 d7
+lda $cc0e  	; $cf4f  ad 0e cc
+jsr $cfa0  	; $cf52  20 a0 cf
+jmp $ce58  	; $cf55  4c 58 ce
+inc $c871  	; $cf58  ee 71 c8
+lda $cc0c  	; $cf5b  ad 0c cc
+jsr $cfa0  	; $cf5e  20 a0 cf
+lda #$ff   	; $cf61  a9 ff
+eor $c871  	; $cf63  4d 71 c8
+sta $c872  	; $cf66  8d 72 c8
+jmp $ce88  	; $cf69  4c 88 ce
+pha        	; $cf6c  48
+ldx #$05   	; $cf6d  a2 05
+jsr chkout  	; $cf6f  20 c9 ff
+lda enabl  	; $cf72  ad a1 02
+and #$03   	; $cf75  29 03
+bne $cf72  	; $cf77  d0 f9
+pla        	; $cf79  68
+jsr chrout  	; $cf7a  20 d2 ff
+rts        	; $cf7d  60
+lda $cc07  	; $cf7e  ad 07 cc
+ldx $cc15  	; $cf81  ae 15 cc
+sta $c870,x	; $cf84  9d 70 c8
+clc        	; $cf87  18
+adc $cc0a  	; $cf88  6d 0a cc
+sta $cc0a  	; $cf8b  8d 0a cc
+inc $cc15  	; $cf8e  ee 15 cc
+inx        	; $cf91  e8
+txa        	; $cf92  8a
+rts        	; $cf93  60
+lda #$00   	; $cf94  a9 00
+sta $cc06  	; $cf96  8d 06 cc
+sta $cc15  	; $cf99  8d 15 cc
+sta $cc0a  	; $cf9c  8d 0a cc
+rts        	; $cf9f  60
+pha        	; $cfa0  48
+ldx #$03   	; $cfa1  a2 03
+jsr chkout  	; $cfa3  20 c9 ff
+pla        	; $cfa6  68
+jsr chrout  	; $cfa7  20 d2 ff
+rts        	; $cfaa  60
+lda #$00   	; $cfab  a9 00
+sta $cc07  	; $cfad  8d 07 cc
+ldx #$05   	; $cfb0  a2 05
+jsr chkin  	; $cfb2  20 c6 ff
+jsr getin  	; $cfb5  20 e4 ff
+sta $cc07  	; $cfb8  8d 07 cc
+rts        	; $cfbb  60
+
+; filler? not referenced anywhere
+
+brk        	; $cfbc  00
+brk        	; $cfbd  00
+brk        	; $cfbe  00
+brk        	; $cfbf  00
+brk        	; $cfc0  00
+brk        	; $cfc1  00
+brk        	; $cfc2  00
+brk        	; $cfc3  00
+brk        	; $cfc4  00
+brk        	; $cfc5  00
+brk        	; $cfc6  00
+brk        	; $cfc7  00
+brk        	; $cfc8  00
+brk        	; $cfc9  00
+brk        	; $cfca  00
+brk        	; $cfcb  00
+brk        	; $cfcc  00
+brk        	; $cfcd  00
+brk        	; $cfce  00
+brk        	; $cfcf  00
+brk        	; $cfd0  00
+brk        	; $cfd1  00
+brk        	; $cfd2  00
+brk        	; $cfd3  00
+brk        	; $cfd4  00
+brk        	; $cfd5  00
+brk        	; $cfd6  00
+brk        	; $cfd7  00
+brk        	; $cfd8  00
+brk        	; $cfd9  00
+brk        	; $cfda  00
+brk        	; $cfdb  00
+brk        	; $cfdc  00
+brk        	; $cfdd  00
+brk        	; $cfde  00
+brk        	; $cfdf  00
+brk        	; $cfe0  00
+brk        	; $cfe1  00
+brk        	; $cfe2  00
+brk        	; $cfe3  00
+brk        	; $cfe4  00
+brk        	; $cfe5  00
+brk        	; $cfe6  00
+brk        	; $cfe7  00
+brk        	; $cfe8  00
+brk        	; $cfe9  00
+brk        	; $cfea  00
+brk        	; $cfeb  00
+brk        	; $cfec  00
+brk        	; $cfed  00
+brk        	; $cfee  00
+brk        	; $cfef  00
+brk        	; $cff0  00
+brk        	; $cff1  00
+brk        	; $cff2  00
+brk        	; $cff3  00
+brk        	; $cff4  00
+brk        	; $cff5  00
+brk        	; $cff6  00
+brk        	; $cff7  00
+brk        	; $cff8  00
+
+; referenced elsewhere
+
+ora ($00,x)	; $cff9  01 00
+and #$08   	; $cffb  29 08
+brk        	; $cffd  00
+brk        	; $cffe  00
+brk        	; $cfff  00
+{endasm}
