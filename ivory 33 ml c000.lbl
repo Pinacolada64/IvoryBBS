@@ -30,6 +30,15 @@ loadf	= $ffd5
 savef	= $ffd8
 getin	= $ffe4
 
+; printable equates:
+return	= 13 ; $0d
+space	= 32 ; $20
+quote	= 34 ; $22
+comma	= 44 ; $2c
+period	= 46 ; $2e
+colon	= 58 ; $3a
+pound	= 92 ; $5c
+
 lda #$00   	; $c000  a9 00
 bit $03a9  	; $c002  2c a9 03
 bit $06a9  	; $c005  2c a9 06
@@ -60,11 +69,11 @@ jmp $c5b0  	; $c042  4c b0 c5
 jmp $c695  	; $c045  4c 95 c6
 
 ; Punter protocol responses:
-.ascii "goo"; $c048  47 4f 4f
-.ascii "bad"; $c04b  42 41 44
-.ascii "ack"; $c04e  41 43 4b
-.ascii "s/b"; $c051  53 2f 42
-.ascii "syn"; $c054  53 59 4e
+.ascii "goo"	; $c048  47 4f 4f "good block"
+.ascii "bad"	; $c04b  42 41 44 "bad block"
+.ascii "ack"	; $c04e  41 43 4b "acknowledge"
+.ascii "s/b"	; $c051  53 2f 42 "send block"
+.ascii "syn"	; $c054  53 59 4e "sync lost" (?)
 
 ;sre $4f    	; $c048  47 4f
 ;sre $4142  	; $c04a  4f 42 41
@@ -85,7 +94,7 @@ sta $c806  	; $c067  8d 06 c8
 sta $c807  	; $c06a  8d 07 c8
 jsr $c681  	; $c06d  20 81 c6
 jsr $c0f8  	; $c070  20 f8 c0
-lda syno    ; $c073  a5 96
+lda syno	; $c073  a5 96
 bne $c0cf  	; $c075  d0 58
 lda $c801  	; $c077  ad 01 c8
 sta $c800  	; $c07a  8d 00 c8
@@ -973,15 +982,16 @@ brk        	; $c7f6  00
 brk        	; $c7f7  00
 brk        	; $c7f8  00
 brk        	; $c7f9  00
+
 ; $c7fa referenced by SETNAM:
-; .byte "$" (directory)
-bit $00    	; $c7fa  24 00
+.byte "$" 	; $cffa  24	; ($=directory)
+brk	    	; $c7fb  00
 brk        	; $c7fc  00
 brk        	; $c7fd  00
 brk        	; $c7fe  00
 brk        	; $c7ff  00
 
-; table
+; table, page boundary
 
 brk        	; $c800  00
 brk        	; $c801  00
@@ -1007,7 +1017,9 @@ brk        	; $c814  00
 brk        	; $c815  00
 brk        	; $c816  00
 brk        	; $c817  00
-isc $0000,x	; $c818  ff 00 00
+.byte $ff	; $c818  ff
+brk		; $c819  00
+brk		; $c81a  00
 brk        	; $c81b  00
 brk        	; $c81c  00
 brk        	; $c81d  00

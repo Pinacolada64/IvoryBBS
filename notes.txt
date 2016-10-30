@@ -6,9 +6,9 @@ lda $c048,y	; $c131  b9 48 c0
 sta $c900,y	; $c29c  99 00 c9
 sta $c800,y	; $c2a3  99 00 c8
 lda $c900,y	; $c44c  b9 00 c9
-lda $be00,y	; $cb96  b9 00 be
-lda $bc00,y	; $cba9  b9 00 bc
-lda $bd00,y	; $cbaf  b9 00 bd
+lda $be00,y	; $cb96  b9 00 be ; external to program
+lda $bc00,y	; $cba9  b9 00 bc ; external to program
+lda $bd00,y	; $cbaf  b9 00 bd ; external to program
 sta $c870,y	; $cd05  99 70 c8
 adc $c870,y	; $cd8b  79 70 c8
 lda $c870,y	; $cd98  b9 70 c8
@@ -22,3 +22,5 @@ sta $c870,x	; $cf84  9d 70 c8
 
 ; regex to find absolute zero-page references
 [^#]\$[0123456789abcdef]{2} 
+
+$7cbc/7cc3 - start of variables?
