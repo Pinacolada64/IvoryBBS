@@ -23,4 +23,7 @@ sta $c870,x	; $cf84  9d 70 c8
 ; regex to find absolute zero-page references
 [^#]\$[0123456789abcdef]{2} 
 
+; regex to replace 64copy labels with c64list labels
+^([bgflst]_....) -> \1:
+
 $7cbc/7cc3 - start of variables?
